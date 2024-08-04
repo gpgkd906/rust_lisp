@@ -23,11 +23,15 @@ lisp:> (/ 20 2)
 10
 lisp:> (cond ((> 5 4) 'yes) ((> 3 5) 'no))
 yes
+lisp:> (defun fib (n) (cond ((= n 1) 1) ((= n 0) 0) (t (+ (fib (- n 1)) (fib (- n 2))))))
+ok
+lisp:> (fib 10)
+55
 ```
 
 ## todo...
 
 - [] add macro support (defmacro)
-- [] add function support (defun)
+- [*] add function support (defun)
 - [] add lambda support (lambda)
 - [] add test...

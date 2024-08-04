@@ -5,3 +5,4 @@ pub mod list;
 pub mod comparison;
 pub mod control;
 pub mod set;
+pub mod lambda;

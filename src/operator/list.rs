@@ -57,4 +57,23 @@ impl ListOps {
 
         Ok(Expr::List(list))
     }
+    
+    pub fn eval_length(args: &[Expr], env: &mut Environment) -> Result<Expr, LispError> {
+        if args.len() != 1 {
+            return Err(LispError::new("length requires exactly one argument"));
+        }
+
+        let list_expr = Evaluator::eval_tree(&args[0], env)?;
+        if let Expr::List(list) = list_expr {
+            return Ok(Expr::Number(list.len() as i64));
+        }
+        Err(LispError::new("length: argument is not a list"))
+    }
+
+    pub fn eval_quote(args: &[Expr], _env: &mut Environment) -> Result<Expr, LispError> {
+        if args.len() != 1 {
+            return Err(LispError::new("quote requires exactly one argument"));
+        }
+        Ok(args[0].clone())
+    }
 }

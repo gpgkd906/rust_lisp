@@ -5,6 +5,7 @@ use crate::exception::LispError;
 use crate::expression::Expr;
 use crate::operator::{
     arithmetic::Arithmetic, comparison::Comparison, control::Control, list::ListOps, set::SetOps,
+    lambda::Lambda,
 };
 
 pub struct Evaluator;
@@ -39,14 +40,10 @@ impl Evaluator {
                         ">=" => Comparison::eval_greater_equal(&list[1..], env),
                         "<=" => Comparison::eval_less_equal(&list[1..], env),
                         "=" => Comparison::eval_equal(&list[1..], env),
-                        "quote" => {
-                            if list.len() != 2 {
-                                Err(LispError::new("quote requires exactly one argument"))
-                            } else {
-                                Ok(list[1].clone())
-                            }
-                        }
-                        _ => Err(LispError::new(&format!("Unknown function: {}", s))),
+                        "quote" => ListOps::eval_quote(&list[1..], env),
+                        "count" => ListOps::eval_length(&list[1..], env),
+                        "defun" => Lambda::eval_defun(&list[1..], env),
+                        _ => Lambda::eval_function_call(s, &list[1..], env),
                     },
                     _ => Err(LispError::new("First element in list must be a symbol")),
                 }

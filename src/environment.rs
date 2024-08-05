@@ -1,5 +1,5 @@
 // environment.rs
-
+use crate::operator::initialize as operator_initialize;
 use std::collections::HashMap;
 use crate::expression::Expr;
 
@@ -11,6 +11,7 @@ pub struct Environment {
 
 impl Environment {
     pub fn initialize() -> Self {
+        operator_initialize();
         let mut env = Environment {
             symbols: HashMap::new(),
             functions: HashMap::new(),

@@ -1,5 +1,5 @@
 // operator/list.rs
-
+use crate::operator::OperatorRegistry;
 use crate::environment::Environment;
 use crate::exception::LispError;
 use crate::expression::Expr;
@@ -13,8 +13,8 @@ impl ListOps {
             return Err(LispError::new("cons requires exactly two arguments"));
         }
 
-        let first = Evaluator::eval_tree(&args[0], env)?;
-        let second = Evaluator::eval_tree(&args[1], env)?;
+        let first = Evaluator::eval(&args[0], env)?;
+        let second = Evaluator::eval(&args[1], env)?;
 
         match second {
             Expr::List(mut list) => {
@@ -30,7 +30,7 @@ impl ListOps {
             return Err(LispError::new("car requires exactly one argument"));
         }
 
-        let list = Evaluator::eval_tree(&args[0], env)?;
+        let list = Evaluator::eval(&args[0], env)?;
 
         match list {
             Expr::List(ref list) if !list.is_empty() => Ok(list[0].clone()),
@@ -44,7 +44,7 @@ impl ListOps {
             return Err(LispError::new("cdr requires exactly one argument"));
         }
 
-        let list = Evaluator::eval_tree(&args[0], env)?;
+        let list = Evaluator::eval(&args[0], env)?;
 
         match list {
             Expr::List(ref list) if list.len() > 1 => Ok(Expr::List(list[1..].to_vec())),
@@ -58,7 +58,7 @@ impl ListOps {
             return Err(LispError::new("length requires exactly one argument"));
         }
 
-        let list_expr = Evaluator::eval_tree(&args[0], env)?;
+        let list_expr = Evaluator::eval(&args[0], env)?;
         if let Expr::List(list) = list_expr {
             return Ok(Expr::Number(list.len() as i64));
         }
@@ -71,6 +71,14 @@ impl ListOps {
         }
         Ok(args[0].clone())
     }
+}
+
+pub fn register_list_operators() {
+    OperatorRegistry::register("cons", ListOps::eval_cons);
+    OperatorRegistry::register("car", ListOps::eval_car);
+    OperatorRegistry::register("cdr", ListOps::eval_cdr);
+    OperatorRegistry::register("length", ListOps::eval_length);
+    OperatorRegistry::register("quote", ListOps::eval_quote);
 }
 
 #[cfg(test)]
@@ -101,7 +109,7 @@ mod tests {
             ]),
         ]);
     
-        let result = Evaluator::eval_tree(&expr, &mut env);
+        let result = Evaluator::eval(&expr, &mut env);
         assert_eq!(
             result,
             Ok(Expr::List(vec![Expr::Number(1), Expr::Number(2), Expr::Number(3)]))
@@ -138,7 +146,7 @@ mod tests {
                 Expr::List(vec![Expr::Number(1), Expr::Number(2), Expr::Number(3)]),
             ]),
         ]);
-        let result = Evaluator::eval_tree(&expr, &mut env);
+        let result = Evaluator::eval(&expr, &mut env);
         assert_eq!(result, Ok(Expr::Number(1)));
     }
 
@@ -163,7 +171,7 @@ mod tests {
                 Expr::List(vec![Expr::Number(1), Expr::Number(2), Expr::Number(3)]),
             ]),
         ]);
-        let result = Evaluator::eval_tree(&expr, &mut env);
+        let result = Evaluator::eval(&expr, &mut env);
         assert_eq!(result, Ok(Expr::List(vec![Expr::Number(2), Expr::Number(3)])));
     }
 

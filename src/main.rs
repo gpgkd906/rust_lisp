@@ -28,7 +28,7 @@ impl Lisp {
                     }
                     match Parser::read(&input) {
                         Ok(ast) => {
-                            let result = Evaluator::eval_tree(&ast, env);
+                            let result = Evaluator::eval(&ast, env);
                             match result {
                                 Ok(value) => Lisp::write(format!("{}\n", value)), // Now it will print correctly
                                 Err(err) => eprintln!("Error: {}", err),
@@ -48,7 +48,7 @@ impl Lisp {
                 for line in contents.lines() {
                     match Parser::read(line) {
                         Ok(ast) => {
-                            let result = Evaluator::eval_tree(&ast, env);
+                            let result = Evaluator::eval(&ast, env);
                             match result {
                                 Ok(value) => Lisp::write(format!("{}\n", value)),
                                 Err(err) => eprintln!("Error: {}", err),

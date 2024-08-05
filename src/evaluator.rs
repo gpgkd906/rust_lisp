@@ -1,17 +1,14 @@
 // evaluator.rs
-
+use crate::operator::OperatorRegistry;
 use crate::environment::Environment;
 use crate::exception::LispError;
 use crate::expression::Expr;
-use crate::operator::{
-    arithmetic::Arithmetic, comparison::Comparison, control::Control, list::ListOps, set::SetOps,
-    lambda::Lambda,
-};
+use crate::operator::lambda::Lambda;
 
 pub struct Evaluator;
 
 impl Evaluator {
-    pub fn eval_tree(ast: &Expr, env: &mut Environment) -> Result<Expr, LispError> {
+    pub fn eval(ast: &Expr, env: &mut Environment) -> Result<Expr, LispError> {
         match ast {
             Expr::Symbol(symbol) => {
                 env.get_symbol(symbol)
@@ -24,33 +21,18 @@ impl Evaluator {
                     return Ok(Expr::List(vec![]));
                 }
                 let first = &list[0];
-                match first {
-                    Expr::Symbol(s) => match s.as_str() {
-                        "+" => Arithmetic::eval_add(&list[1..], env),
-                        "-" => Arithmetic::eval_subtract(&list[1..], env),
-                        "*" => Arithmetic::eval_multiply(&list[1..], env),
-                        "/" => Arithmetic::eval_divide(&list[1..], env),
-                        "setf" => SetOps::eval_setf(&list[1..], env),
-                        "car" => ListOps::eval_car(&list[1..], env),
-                        "cdr" => ListOps::eval_cdr(&list[1..], env),
-                        "cons" => ListOps::eval_cons(&list[1..], env),
-                        "cond" => Control::eval_cond(&list[1..], env),
-                        "not" => Control::eval_not(&list[1..], env),
-                        ">" => Comparison::eval_greater(&list[1..], env),
-                        "<" => Comparison::eval_less(&list[1..], env),
-                        ">=" => Comparison::eval_greater_equal(&list[1..], env),
-                        "<=" => Comparison::eval_less_equal(&list[1..], env),
-                        "=" => Comparison::eval_equal(&list[1..], env),
-                        "quote" => ListOps::eval_quote(&list[1..], env),
-                        "count" => ListOps::eval_length(&list[1..], env),
-                        "defun" => Lambda::eval_defun(&list[1..], env),
-                        _ => Lambda::eval_function_call(s, &list[1..], env),
-                    },
-                    _ => Err(LispError::new("Cannot evaluate a list without a valid operator")),
+                if let Expr::Symbol(s) = first {
+                    if let Some(operator_fn) = OperatorRegistry::get(s) {
+                        operator_fn(&list[1..], env)
+                    } else {
+                        Lambda::eval_function_call(s, &list[1..], env)
+                    }
+                } else {
+                    Err(LispError::new("Cannot evaluate a list without a valid operator"))
                 }
             }
         }
-    }    
+    }
 }
 
 #[cfg(test)]
@@ -71,11 +53,11 @@ mod tests {
     fn test_eval_symbol() {
         let mut env = setup_environment();
         let expr = Expr::Symbol("x".to_string());
-        let result = Evaluator::eval_tree(&expr, &mut env);
+        let result = Evaluator::eval(&expr, &mut env);
         assert_eq!(result, Ok(Expr::Number(10)));
 
         let expr = Expr::Symbol("z".to_string());
-        let result = Evaluator::eval_tree(&expr, &mut env);
+        let result = Evaluator::eval(&expr, &mut env);
         assert!(result.is_err());
     }
 
@@ -83,11 +65,11 @@ mod tests {
     fn test_eval_number_and_string() {
         let mut env = setup_environment();
         let expr = Expr::Number(42);
-        let result = Evaluator::eval_tree(&expr, &mut env);
+        let result = Evaluator::eval(&expr, &mut env);
         assert_eq!(result, Ok(Expr::Number(42)));
 
         let expr = Expr::Str("Hello".to_string());
-        let result = Evaluator::eval_tree(&expr, &mut env);
+        let result = Evaluator::eval(&expr, &mut env);
         assert_eq!(result, Ok(Expr::Str("Hello".to_string())));
     }
 
@@ -95,7 +77,7 @@ mod tests {
     fn test_eval_empty_list() {
         let mut env = setup_environment();
     
-        let result = Evaluator::eval_tree(&Expr::List(vec![]), &mut env);
+        let result = Evaluator::eval(&Expr::List(vec![]), &mut env);
     
         // 修改断言为期待的结果
         assert_eq!(result, Ok(Expr::List(vec![]))); // 符合实现
@@ -110,7 +92,7 @@ mod tests {
             Expr::Number(1),
             Expr::Number(2),
         ]);
-        let result = Evaluator::eval_tree(&expr, &mut env);
+        let result = Evaluator::eval(&expr, &mut env);
         assert_eq!(result, Ok(Expr::Number(3)));
 
         let expr = Expr::List(vec![
@@ -118,7 +100,7 @@ mod tests {
             Expr::Number(3),
             Expr::Number(4),
         ]);
-        let result = Evaluator::eval_tree(&expr, &mut env);
+        let result = Evaluator::eval(&expr, &mut env);
         assert_eq!(result, Ok(Expr::Number(12)));
     }
 
@@ -136,7 +118,7 @@ mod tests {
             ]),
         ]);
     
-        let result = Evaluator::eval_tree(&expr, &mut env);
+        let result = Evaluator::eval(&expr, &mut env);
         assert_eq!(
             result,
             Ok(Expr::List(vec![Expr::Number(1), Expr::Number(2), Expr::Number(3)]))
@@ -150,7 +132,7 @@ mod tests {
                 Expr::List(vec![Expr::Number(1), Expr::Number(2), Expr::Number(3)]),
             ]),
         ]);
-        let result = Evaluator::eval_tree(&expr, &mut env);
+        let result = Evaluator::eval(&expr, &mut env);
         assert_eq!(result, Ok(Expr::Number(1)));
     
         // 测试 cdr 操作符
@@ -161,7 +143,7 @@ mod tests {
                 Expr::List(vec![Expr::Number(1), Expr::Number(2), Expr::Number(3)]),
             ]),
         ]);
-        let result = Evaluator::eval_tree(&expr, &mut env);
+        let result = Evaluator::eval(&expr, &mut env);
         assert_eq!(result, Ok(Expr::List(vec![Expr::Number(2), Expr::Number(3)])));
     }
     
@@ -186,7 +168,7 @@ mod tests {
             ]),
         ]);
     
-        let result = Evaluator::eval_tree(&expr, &mut env);
+        let result = Evaluator::eval(&expr, &mut env);
         assert_eq!(result, Ok(Expr::Number(42)));
     
         // 带有 false 条件的测试
@@ -210,7 +192,7 @@ mod tests {
             ]),
         ]);
     
-        let result = Evaluator::eval_tree(&expr, &mut env);
+        let result = Evaluator::eval(&expr, &mut env);
         assert_eq!(result, Ok(Expr::Number(100)));
     }
 }

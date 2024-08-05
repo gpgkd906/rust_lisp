@@ -1,5 +1,5 @@
 // operator/comparison.rs
-
+use crate::operator::OperatorRegistry;
 use crate::environment::Environment;
 use crate::exception::LispError;
 use crate::expression::Expr;
@@ -13,8 +13,8 @@ impl Comparison {
             return Err(LispError::new("`>` expects exactly two arguments"));
         }
 
-        let left = Evaluator::eval_tree(&args[0], env)?;
-        let right = Evaluator::eval_tree(&args[1], env)?;
+        let left = Evaluator::eval(&args[0], env)?;
+        let right = Evaluator::eval(&args[1], env)?;
 
         match (left, right) {
             (Expr::Number(l), Expr::Number(r)) => {
@@ -33,8 +33,8 @@ impl Comparison {
             return Err(LispError::new("`>=` expects exactly two arguments"));
         }
 
-        let left = Evaluator::eval_tree(&args[0], env)?;
-        let right = Evaluator::eval_tree(&args[1], env)?;
+        let left = Evaluator::eval(&args[0], env)?;
+        let right = Evaluator::eval(&args[1], env)?;
 
         match (left, right) {
             (Expr::Number(l), Expr::Number(r)) => {
@@ -53,8 +53,8 @@ impl Comparison {
             return Err(LispError::new("`<` expects exactly two arguments"));
         }
 
-        let left = Evaluator::eval_tree(&args[0], env)?;
-        let right = Evaluator::eval_tree(&args[1], env)?;
+        let left = Evaluator::eval(&args[0], env)?;
+        let right = Evaluator::eval(&args[1], env)?;
 
         match (left, right) {
             (Expr::Number(l), Expr::Number(r)) => {
@@ -73,8 +73,8 @@ impl Comparison {
             return Err(LispError::new("`<=` expects exactly two arguments"));
         }
 
-        let left = Evaluator::eval_tree(&args[0], env)?;
-        let right = Evaluator::eval_tree(&args[1], env)?;
+        let left = Evaluator::eval(&args[0], env)?;
+        let right = Evaluator::eval(&args[1], env)?;
 
         match (left, right) {
             (Expr::Number(l), Expr::Number(r)) => {
@@ -93,8 +93,8 @@ impl Comparison {
             return Err(LispError::new("`==` expects exactly two arguments"));
         }
 
-        let left = Evaluator::eval_tree(&args[0], env)?;
-        let right = Evaluator::eval_tree(&args[1], env)?;
+        let left = Evaluator::eval(&args[0], env)?;
+        let right = Evaluator::eval(&args[1], env)?;
 
         match (left, right) {
             (Expr::Number(l), Expr::Number(r)) => {
@@ -127,8 +127,8 @@ impl Comparison {
             return Err(LispError::new("`!=` expects exactly two arguments"));
         }
 
-        let left = Evaluator::eval_tree(&args[0], env)?;
-        let right = Evaluator::eval_tree(&args[1], env)?;
+        let left = Evaluator::eval(&args[0], env)?;
+        let right = Evaluator::eval(&args[1], env)?;
 
         match (left, right) {
             (Expr::Number(l), Expr::Number(r)) => {
@@ -155,6 +155,19 @@ impl Comparison {
             _ => Ok(Expr::Symbol("t".to_string())),
         }
     }
+}
+
+pub fn register_comparison_operators() {
+    OperatorRegistry::register(">", Comparison::eval_greater);
+    OperatorRegistry::register("gt", Comparison::eval_greater);
+    OperatorRegistry::register(">=", Comparison::eval_greater_equal);
+    OperatorRegistry::register("gte", Comparison::eval_greater_equal);
+    OperatorRegistry::register("<", Comparison::eval_less);
+    OperatorRegistry::register("lt", Comparison::eval_less);
+    OperatorRegistry::register("<=", Comparison::eval_less_equal);
+    OperatorRegistry::register("lte", Comparison::eval_less_equal);
+    OperatorRegistry::register("eq", Comparison::eval_equal);
+    OperatorRegistry::register("ne", Comparison::eval_not_equal);
 }
 
 #[cfg(test)]

@@ -1,3 +1,5 @@
+// operator/lambda.rs
+use crate::operator::OperatorRegistry;
 use crate::environment::Environment;
 use crate::exception::LispError;
 use crate::expression::Expr;
@@ -56,18 +58,22 @@ impl Lambda {
     
             for (param, arg) in params.iter().zip(args.iter()) {
                 if let Expr::Symbol(s) = param {
-                    let value = Evaluator::eval_tree(arg, &mut local_env)?; // Use local_env for evaluation
+                    let value = Evaluator::eval(arg, &mut local_env)?; // Use local_env for evaluation
                     local_env.set_symbol(s.clone(), value);
                 } else {
                     return Err(LispError::new("Invalid parameter name"));
                 }
             }
     
-            Evaluator::eval_tree(&list[2], &mut local_env)
+            Evaluator::eval(&list[2], &mut local_env)
         } else {
             Err(LispError::new("Function is not defined correctly"))
         }
     }    
+}
+
+pub fn register_lambda_operators() {
+    OperatorRegistry::register("defun", Lambda::eval_defun);
 }
 
 #[cfg(test)]

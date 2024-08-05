@@ -1,5 +1,5 @@
 // operator/control.rs
-
+use crate::operator::OperatorRegistry;
 use crate::environment::Environment;
 use crate::exception::LispError;
 use crate::expression::Expr;
@@ -14,12 +14,12 @@ impl Control {
                 Expr::List(pair) => {
                     if pair.len() == 1 {
                         // 如果子句只有一个元素，直接返回该元素的值
-                        return Evaluator::eval_tree(&pair[0], env);
+                        return Evaluator::eval(&pair[0], env);
                     } else if pair.len() == 2 {
                         let test = &pair[0];
                         let result = &pair[1];
 
-                        let test_value = match Evaluator::eval_tree(test, env) {
+                        let test_value = match Evaluator::eval(test, env) {
                             Ok(Expr::Symbol(s)) if s == "t" || s == "T" => true,  // 支持真值符号 t 或 T
                             Ok(Expr::Number(n)) if n != 0 => true,   // 非零数值作为真值
                             Ok(Expr::List(list)) if !list.is_empty() => true, // 非空列表为真
@@ -29,7 +29,7 @@ impl Control {
                         };
 
                         if test_value {
-                            return Evaluator::eval_tree(result, env);
+                            return Evaluator::eval(result, env);
                         }
                     } else {
                         return Err(LispError::new("Each cond clause must have exactly one or two elements"));
@@ -63,6 +63,11 @@ impl Control {
     }
 }
 
+pub fn register_control_operators() {
+    OperatorRegistry::register("cond", Control::eval_cond);
+    OperatorRegistry::register("not", Control::eval_not);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -88,7 +93,7 @@ mod tests {
             Expr::List(vec![Expr::Number(3)]),
         ]);
 
-        let result = Evaluator::eval_tree(&expr, &mut env);
+        let result = Evaluator::eval(&expr, &mut env);
         assert_eq!(result, Ok(Expr::Number(3)));
     }
 
@@ -113,7 +118,7 @@ mod tests {
             Expr::List(vec![Expr::Number(3)]),
         ]);
 
-        let result = Evaluator::eval_tree(&expr, &mut env);
+        let result = Evaluator::eval(&expr, &mut env);
         assert_eq!(result, Ok(Expr::Number(2)));
     }
 
@@ -137,7 +142,7 @@ mod tests {
             ]),
         ]);
 
-        let result = Evaluator::eval_tree(&expr, &mut env);
+        let result = Evaluator::eval(&expr, &mut env);
         assert_eq!(result, Ok(Expr::Number(2)));
     }
 
@@ -165,7 +170,7 @@ mod tests {
             ]),
         ]);
     
-        let result = Evaluator::eval_tree(&expr, &mut env);
+        let result = Evaluator::eval(&expr, &mut env);
         assert_eq!(result, Ok(Expr::Number(2)));
     }
     
@@ -187,7 +192,7 @@ mod tests {
             Expr::List(vec![Expr::Number(3)]),
         ]);
 
-        let result = Evaluator::eval_tree(&expr, &mut env);
+        let result = Evaluator::eval(&expr, &mut env);
         assert_eq!(result, Ok(Expr::Number(1)));
     }
 

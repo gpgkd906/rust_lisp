@@ -1,5 +1,6 @@
 // operator/arithmetic.rs
 
+use crate::operator::OperatorRegistry;
 use crate::environment::Environment;
 use crate::exception::LispError;
 use crate::expression::Expr;
@@ -11,7 +12,7 @@ impl Arithmetic {
     pub fn eval_add(args: &[Expr], env: &mut Environment) -> Result<Expr, LispError> {
         let sum: i64 = args
             .iter()
-            .map(|arg| Evaluator::eval_tree(arg, env))
+            .map(|arg| Evaluator::eval(arg, env))
             .map(|result| result.and_then(|expr| match expr {
                 Expr::Number(n) => Ok(n),
                 _ => Err(LispError::new("Invalid number")),
@@ -25,12 +26,12 @@ impl Arithmetic {
         let first = iter
             .next()
             .ok_or_else(|| LispError::new("Subtraction requires at least one argument"))?;
-        let mut result = match Evaluator::eval_tree(first, env)? {
+        let mut result = match Evaluator::eval(first, env)? {
             Expr::Number(n) => n,
             _ => return Err(LispError::new("Invalid number")),
         };
         for arg in iter {
-            let value = match Evaluator::eval_tree(arg, env)? {
+            let value = match Evaluator::eval(arg, env)? {
                 Expr::Number(n) => n,
                 _ => return Err(LispError::new("Invalid number")),
             };
@@ -42,7 +43,7 @@ impl Arithmetic {
     pub fn eval_multiply(args: &[Expr], env: &mut Environment) -> Result<Expr, LispError> {
         let product: i64 = args
             .iter()
-            .map(|arg| Evaluator::eval_tree(arg, env))
+            .map(|arg| Evaluator::eval(arg, env))
             .map(|result| result.and_then(|expr| match expr {
                 Expr::Number(n) => Ok(n),
                 _ => Err(LispError::new("Invalid number")),
@@ -56,12 +57,12 @@ impl Arithmetic {
         let first = iter
             .next()
             .ok_or_else(|| LispError::new("Division requires at least one argument"))?;
-        let mut result = match Evaluator::eval_tree(first, env)? {
+        let mut result = match Evaluator::eval(first, env)? {
             Expr::Number(n) => n,
             _ => return Err(LispError::new("Invalid number")),
         };
         for arg in iter {
-            let value = match Evaluator::eval_tree(arg, env)? {
+            let value = match Evaluator::eval(arg, env)? {
                 Expr::Number(n) => n,
                 _ => return Err(LispError::new("Invalid number")),
             };
@@ -72,6 +73,13 @@ impl Arithmetic {
         }
         Ok(Expr::Number(result))
     }
+}
+
+pub fn register_arithmetic_operators() {
+    OperatorRegistry::register("+", Arithmetic::eval_add);
+    OperatorRegistry::register("-", Arithmetic::eval_subtract);
+    OperatorRegistry::register("*", Arithmetic::eval_multiply);
+    OperatorRegistry::register("/", Arithmetic::eval_divide);
 }
 
 #[cfg(test)]

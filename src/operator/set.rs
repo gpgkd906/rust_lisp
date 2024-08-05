@@ -1,5 +1,5 @@
 // operator/set.rs
-
+use crate::operator::OperatorRegistry;
 use crate::environment::Environment;
 use crate::exception::LispError;
 use crate::expression::Expr;
@@ -18,10 +18,14 @@ impl SetOps {
             _ => return Err(LispError::new("setf: first argument must be a symbol")),
         };
 
-        let value = Evaluator::eval_tree(&args[1], env)?;
+        let value = Evaluator::eval(&args[1], env)?;
         env.set_symbol(symbol.clone(), value.clone());
         Ok(value)
     }
+}
+
+pub fn register_set_operators() {
+    OperatorRegistry::register("setf", SetOps::eval_setf);
 }
 
 #[cfg(test)]
@@ -97,7 +101,7 @@ mod tests {
             ]),
         ];
 
-        // 假设 Evaluator::eval_tree 正确处理了 y + 32 的计算
+        // 假设 Evaluator::eval 正确处理了 y + 32 的计算
         let result = SetOps::eval_setf(&args, &mut env);
 
         assert!(result.is_ok());

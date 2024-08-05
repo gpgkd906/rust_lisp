@@ -21,14 +21,29 @@ impl Evaluator {
                     return Ok(Expr::List(vec![]));
                 }
                 let first = &list[0];
-                if let Expr::Symbol(s) = first {
-                    if let Some(operator_fn) = OperatorRegistry::get(s) {
-                        operator_fn(&list[1..], env)
-                    } else {
-                        Lambda::eval_function_call(s, &list[1..], env)
+                match first {
+                    Expr::Symbol(s) => {
+                        if let Some(operator_fn) = OperatorRegistry::get(s) {
+                            operator_fn(&list[1..], env)
+                        } else {
+                            Lambda::eval_function_call(s, &list[1..], env)
+                        }
                     }
-                } else {
-                    Err(LispError::new("Cannot evaluate a list without a valid operator"))
+                    Expr::List(_) => {
+                        // Evaluate the first element which might be a lambda expression
+                        let func = Evaluator::eval(&list[0], env)?;
+                        if let Expr::List(func_list) = func {
+                            if func_list.len() == 3 && func_list[0] == Expr::Symbol("lambda".to_string()) {
+                                // Correctly call the lambda function
+                                Lambda::eval_lambda_call(&func_list[1..], &list[1..], env)
+                            } else {
+                                Err(LispError::new("Invalid function call"))
+                            }
+                        } else {
+                            Err(LispError::new("Invalid function call"))
+                        }
+                    }
+                    _ => Err(LispError::new("Cannot evaluate a list without a valid operator")),
                 }
             }
         }

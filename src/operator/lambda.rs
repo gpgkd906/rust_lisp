@@ -8,6 +8,63 @@ use crate::Evaluator;
 pub struct Lambda;
 
 impl Lambda {
+    pub fn eval_lambda(args: &[Expr], env: &mut Environment) -> Result<Expr, LispError> {
+        if args.len() < 2 {
+            return Err(LispError::new("lambda requires at least 2 arguments: params, body"));
+        }
+
+        let params = match &args[0] {
+            Expr::List(p) => p.clone(),
+            _ => return Err(LispError::new("lambda: first argument must be a list of parameters")),
+        };
+
+        // 使用 progn 将多个表达式作为函数体
+        let body = if args.len() == 2 {
+            args[1].clone()
+        } else {
+            Expr::List(vec![Expr::Symbol("progn".to_string())].into_iter().chain(args[1..].iter().cloned()).collect())
+        };
+
+        // 返回一个 lambda 表达式，即匿名函数
+        Ok(Expr::List(vec![Expr::Symbol("lambda".to_string()), Expr::List(params), body]))
+    }
+
+    fn eval_progn(args: &[Expr], env: &mut Environment) -> Result<Expr, LispError> {
+        let mut result = Expr::List(vec![]);
+        for arg in args {
+            result = Evaluator::eval(arg, env)?;
+        }
+        Ok(result)
+    }
+
+    pub fn eval_lambda_call(lambda_parts: &[Expr], args: &[Expr], env: &mut Environment) -> Result<Expr, LispError> {
+        if lambda_parts.len() != 2 {
+            return Err(LispError::new("Invalid lambda expression"));
+        }
+
+        let params = if let Expr::List(p) = &lambda_parts[0] {
+            p
+        } else {
+            return Err(LispError::new("Invalid parameter list"));
+        };
+
+        if params.len() != args.len() {
+            return Err(LispError::new("Argument count does not match parameter count"));
+        }
+
+        let mut local_env = env.clone();
+        for (param, arg) in params.iter().zip(args.iter()) {
+            if let Expr::Symbol(s) = param {
+                let value = Evaluator::eval(arg, &mut local_env)?;
+                local_env.set_symbol(s.clone(), value);
+            } else {
+                return Err(LispError::new("Invalid parameter name"));
+            }
+        }
+
+        Evaluator::eval(&lambda_parts[1], &mut local_env)
+    }
+
     pub fn eval_defun(args: &[Expr], env: &mut Environment) -> Result<Expr, LispError> {
         if args.len() != 3 {
             return Err(LispError::new("defun requires exactly 3 arguments: name, params, body"));
@@ -73,6 +130,8 @@ impl Lambda {
 
 pub fn register_lambda_operators() {
     OperatorRegistry::register("defun", Lambda::eval_defun);
+    OperatorRegistry::register("lambda", Lambda::eval_lambda);
+    OperatorRegistry::register("progn", Lambda::eval_progn);
 }
 
 #[cfg(test)]
@@ -302,5 +361,40 @@ mod tests {
         } else {
             panic!("Fib call expression is not a list");
         }
+    }
+
+    #[test]
+    fn test_eval_anonymous_function() {
+        let mut env = setup_environment();
+
+        // 定义并立即调用匿名函数
+        let anon_func_call = Expr::List(vec![
+            Expr::List(vec![
+                Expr::Symbol("lambda".to_string()),
+                Expr::List(vec![Expr::Symbol("x".to_string())]), // 参数列表
+                Expr::List(vec![
+                    Expr::Symbol("progn".to_string()), // 使用 progn 进行多个表达式求值
+                    Expr::List(vec![
+                        Expr::Symbol("setf".to_string()),
+                        Expr::Symbol("y".to_string()),
+                        Expr::List(vec![
+                            Expr::Symbol("+".to_string()),
+                            Expr::Symbol("x".to_string()),
+                            Expr::Number(2),
+                        ]),
+                    ]),
+                    Expr::List(vec![
+                        Expr::Symbol("+".to_string()),
+                        Expr::Symbol("y".to_string()),
+                        Expr::Number(0),
+                    ]),
+                ]),
+            ]),
+            Expr::Number(9),
+        ]);
+
+        // 直接求值整个表达式
+        let result = Evaluator::eval(&anon_func_call, &mut env);
+        assert_eq!(result, Ok(Expr::Number(11))); // 应返回11
     }
 }

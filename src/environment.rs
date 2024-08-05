@@ -6,7 +6,7 @@ use crate::expression::Expr;
 #[derive(Clone)]
 pub struct Environment {
     symbols: HashMap<String, Expr>,
-    functions: HashMap<String, (Vec<String>, Expr)>,
+    functions: HashMap<String, Expr>,
 }
 
 impl Environment {
@@ -31,11 +31,11 @@ impl Environment {
         self.symbols.insert(symbol, value);
     }
 
-    pub fn get_function(&self, name: &str) -> Option<&(Vec<String>, Expr)> {
-        self.functions.get(name)
+    pub fn set_function(&mut self, name: String, func: Expr) {
+        self.functions.insert(name, func);
     }
 
-    pub fn set_function(&mut self, name: String, params: Vec<String>, body: Expr) {
-        self.functions.insert(name, (params, body));
+    pub fn get_function(&self, name: &str) -> Option<&Expr> {
+        self.functions.get(name)
     }
 }

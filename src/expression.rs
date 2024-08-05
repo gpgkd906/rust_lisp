@@ -39,27 +39,22 @@ impl PartialEq for Expr {
 impl Eq for Expr {}
 
 impl Expr {
-    // 判断是否为数字类型
     pub fn is_number(&self) -> bool {
         matches!(self, Expr::Number(_))
     }
 
-    // 判断是否为符号类型
     pub fn is_symbol(&self) -> bool {
         matches!(self, Expr::Symbol(_))
     }
 
-    // 判断是否为字符串类型
     pub fn is_string(&self) -> bool {
         matches!(self, Expr::Str(_))
     }
 
-    // 判断是否为列表类型
     pub fn is_list(&self) -> bool {
         matches!(self, Expr::List(_))
     }
 
-    // 返回表达式的字符串表示
     pub fn to_string(&self) -> String {
         match self {
             Expr::Number(n) => n.to_string(),

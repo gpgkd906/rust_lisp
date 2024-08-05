@@ -8,7 +8,7 @@ use crate::Evaluator;
 pub struct Lambda;
 
 impl Lambda {
-    pub fn eval_lambda(args: &[Expr], env: &mut Environment) -> Result<Expr, LispError> {
+    pub fn eval_lambda(args: &[Expr], _env: &mut Environment) -> Result<Expr, LispError> {
         if args.len() < 2 {
             return Err(LispError::new("lambda requires at least 2 arguments: params, body"));
         }

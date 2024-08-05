@@ -41,7 +41,8 @@ impl Lisp {
             }
         }
     }
-
+    
+    #[allow(dead_code)]
     fn interpreter(file: &str, env: &mut Environment) {
         match std::fs::read_to_string(file) {
             Ok(contents) => {

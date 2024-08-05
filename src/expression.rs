@@ -42,22 +42,27 @@ impl PartialEq for Expr {
 impl Eq for Expr {}
 
 impl Expr {
+    #[allow(dead_code)]
     pub fn is_number(&self) -> bool {
         matches!(self, Expr::Number(_))
     }
 
+    #[allow(dead_code)]
     pub fn is_symbol(&self) -> bool {
         matches!(self, Expr::Symbol(_))
     }
 
+    #[allow(dead_code)]
     pub fn is_string(&self) -> bool {
         matches!(self, Expr::Str(_))
     }
 
+    #[allow(dead_code)]
     pub fn is_list(&self) -> bool {
         matches!(self, Expr::List(_))
     }
 
+    #[allow(dead_code)]
     pub fn to_string(&self) -> String {
         match self {
             Expr::Number(n) => n.to_string(),

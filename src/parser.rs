@@ -107,34 +107,45 @@ impl Parser {
 
     fn parse_number(chars: &mut std::iter::Peekable<Chars>) -> Result<Expr, LispError> {
         let mut number = String::new();
-        let mut is_number = false;
+        let mut is_float = false;
 
-        // 读取所有连续的数字字符
+        // 读取所有连续的数字字符，包括小数点
         while let Some(&ch) = chars.peek() {
-            if ch.is_digit(10) {
+            if ch.is_digit(10) || ch == '.' {
+                if ch == '.' {
+                    if is_float {
+                        return Err(LispError::new("Invalid float")); // 多个小数点的情况
+                    }
+                    is_float = true;
+                }
                 number.push(chars.next().unwrap());
-                is_number = true;
             } else {
                 break;
             }
         }
 
         // 检查是否成功读取了一个有效的数字
-        if !is_number {
+        if number.is_empty() || number == "." {
             return Err(LispError::new("Invalid number"));
         }
 
-        // 检查后续字符是否为非法字符
+        // 检查下一个字符是否合法
         if let Some(&ch) = chars.peek() {
             if !ch.is_whitespace() && ch != '(' && ch != ')' && ch != ';' {
-                return Err(LispError::new("Invalid number"));
+                return Err(LispError::new("Invalid number")); // 确保后续字符合法
             }
         }
 
-        // 将字符串解析为整数
-        number.parse::<i64>()
-            .map(Expr::Number)
-            .map_err(|_| LispError::new("Invalid number"))
+        // 解析为整数或浮点数
+        if is_float {
+            number.parse::<f64>()
+                .map(Expr::Float)
+                .map_err(|_| LispError::new("Invalid float"))
+        } else {
+            number.parse::<i64>()
+                .map(Expr::Number)
+                .map_err(|_| LispError::new("Invalid number"))
+        }
     }
     
     fn parse_string(chars: &mut std::iter::Peekable<Chars>) -> Result<Expr, LispError> {

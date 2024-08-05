@@ -10,15 +10,25 @@ pub struct Arithmetic;
 
 impl Arithmetic {
     pub fn eval_add(args: &[Expr], env: &mut Environment) -> Result<Expr, LispError> {
-        let sum: i64 = args
-            .iter()
-            .map(|arg| Evaluator::eval(arg, env))
-            .map(|result| result.and_then(|expr| match expr {
-                Expr::Number(n) => Ok(n),
-                _ => Err(LispError::new("Invalid number")),
-            }))
-            .sum::<Result<i64, LispError>>()?;
-        Ok(Expr::Number(sum))
+        let mut sum = 0.0;
+        let mut has_float = false;
+
+        for arg in args {
+            match Evaluator::eval(arg, env)? {
+                Expr::Number(n) => sum += n as f64,
+                Expr::Float(f) => {
+                    sum += f;
+                    has_float = true;
+                },
+                _ => return Err(LispError::new("Invalid number")),
+            }
+        }
+
+        if has_float || sum.fract() != 0.0 {
+            Ok(Expr::Float(sum))
+        } else {
+            Ok(Expr::Number(sum as i64))
+        }
     }
 
     pub fn eval_subtract(args: &[Expr], env: &mut Environment) -> Result<Expr, LispError> {
@@ -27,29 +37,50 @@ impl Arithmetic {
             .next()
             .ok_or_else(|| LispError::new("Subtraction requires at least one argument"))?;
         let mut result = match Evaluator::eval(first, env)? {
-            Expr::Number(n) => n,
+            Expr::Number(n) => n as f64,
+            Expr::Float(f) => f,
             _ => return Err(LispError::new("Invalid number")),
         };
+        let mut has_float = matches!(first, Expr::Float(_));
+
         for arg in iter {
-            let value = match Evaluator::eval(arg, env)? {
-                Expr::Number(n) => n,
+            match Evaluator::eval(arg, env)? {
+                Expr::Number(n) => result -= n as f64,
+                Expr::Float(f) => {
+                    result -= f;
+                    has_float = true;
+                },
                 _ => return Err(LispError::new("Invalid number")),
-            };
-            result -= value;
+            }
         }
-        Ok(Expr::Number(result))
+
+        if has_float || result.fract() != 0.0 {
+            Ok(Expr::Float(result))
+        } else {
+            Ok(Expr::Number(result as i64))
+        }
     }
 
     pub fn eval_multiply(args: &[Expr], env: &mut Environment) -> Result<Expr, LispError> {
-        let product: i64 = args
-            .iter()
-            .map(|arg| Evaluator::eval(arg, env))
-            .map(|result| result.and_then(|expr| match expr {
-                Expr::Number(n) => Ok(n),
-                _ => Err(LispError::new("Invalid number")),
-            }))
-            .product::<Result<i64, LispError>>()?;
-        Ok(Expr::Number(product))
+        let mut product = 1.0;
+        let mut has_float = false;
+
+        for arg in args {
+            match Evaluator::eval(arg, env)? {
+                Expr::Number(n) => product *= n as f64,
+                Expr::Float(f) => {
+                    product *= f;
+                    has_float = true;
+                },
+                _ => return Err(LispError::new("Invalid number")),
+            }
+        }
+
+        if has_float || product.fract() != 0.0 {
+            Ok(Expr::Float(product))
+        } else {
+            Ok(Expr::Number(product as i64))
+        }
     }
 
     pub fn eval_divide(args: &[Expr], env: &mut Environment) -> Result<Expr, LispError> {
@@ -58,20 +89,36 @@ impl Arithmetic {
             .next()
             .ok_or_else(|| LispError::new("Division requires at least one argument"))?;
         let mut result = match Evaluator::eval(first, env)? {
-            Expr::Number(n) => n,
+            Expr::Number(n) => n as f64,
+            Expr::Float(f) => f,
             _ => return Err(LispError::new("Invalid number")),
         };
+        let mut has_float = matches!(first, Expr::Float(_));
+
         for arg in iter {
-            let value = match Evaluator::eval(arg, env)? {
-                Expr::Number(n) => n,
+            match Evaluator::eval(arg, env)? {
+                Expr::Number(n) => {
+                    if n == 0 {
+                        return Err(LispError::new("Division by zero"));
+                    }
+                    result /= n as f64;
+                }
+                Expr::Float(f) => {
+                    if f == 0.0 {
+                        return Err(LispError::new("Division by zero"));
+                    }
+                    result /= f;
+                    has_float = true;
+                }
                 _ => return Err(LispError::new("Invalid number")),
-            };
-            if value == 0 {
-                return Err(LispError::new("Division by zero"));
             }
-            result /= value;
         }
-        Ok(Expr::Number(result))
+
+        if has_float || result.fract() != 0.0 {
+            Ok(Expr::Float(result))
+        } else {
+            Ok(Expr::Number(result as i64))
+        }
     }
 }
 
@@ -211,5 +258,25 @@ mod tests {
         if let Err(err) = result {
             assert_eq!(err.to_string(), "Division requires at least one argument");
         }
+    }
+
+    #[test]
+    fn test_eval_nested_multiplication_with_float() {
+        let mut env = Environment::initialize();
+        
+        // 构造表达式 (* 100 5 (/ 3 2))
+        let expr = Expr::List(vec![
+            Expr::Symbol("*".to_string()),
+            Expr::Number(100),
+            Expr::Number(5),
+            Expr::List(vec![
+                Expr::Symbol("/".to_string()),
+                Expr::Number(3),
+                Expr::Number(2),
+            ]),
+        ]);
+
+        let result = Evaluator::eval(&expr, &mut env);
+        assert_eq!(result, Ok(Expr::Float(750.0))); // 应返回750.0
     }
 }

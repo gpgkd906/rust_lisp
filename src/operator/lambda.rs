@@ -54,12 +54,10 @@ impl Lambda {
                 return Err(LispError::new("Argument count does not match parameter count"));
             }
     
-            // Clone the environment to avoid mutable and immutable borrow conflict
             let mut local_env = env.clone();
-    
             for (param, arg) in params.iter().zip(args.iter()) {
                 if let Expr::Symbol(s) = param {
-                    let value = Evaluator::eval(arg, &mut local_env)?; // Use local_env for evaluation
+                    let value = Evaluator::eval(arg, &mut local_env)?;
                     local_env.set_symbol(s.clone(), value);
                 } else {
                     return Err(LispError::new("Invalid parameter name"));

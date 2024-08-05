@@ -6,6 +6,7 @@ use std::fmt;
 pub enum Expr {
     Symbol(String),
     Number(i64),
+    Float(f64),
     Str(String),
     List(Vec<Expr>),
 }
@@ -15,6 +16,7 @@ impl fmt::Display for Expr {
         match self {
             Expr::Symbol(s) => write!(f, "{}", s),
             Expr::Number(n) => write!(f, "{}", n),
+            Expr::Float(n) => write!(f, "{}", n),
             Expr::Str(s) => write!(f, "\"{}\"", s.replace("\"", "\\\"")), // 正确处理引号的转义
             Expr::List(list) => {
                 let list_str: Vec<String> = list.iter().map(|expr| format!("{}", expr)).collect();
@@ -29,6 +31,7 @@ impl PartialEq for Expr {
         match (self, other) {
             (Expr::Symbol(a), Expr::Symbol(b)) => a == b,
             (Expr::Number(a), Expr::Number(b)) => a == b,
+            (Expr::Float(a), Expr::Float(b)) => a == b,
             (Expr::Str(a), Expr::Str(b)) => a == b,
             (Expr::List(a), Expr::List(b)) => a == b,
             _ => false,
@@ -58,6 +61,7 @@ impl Expr {
     pub fn to_string(&self) -> String {
         match self {
             Expr::Number(n) => n.to_string(),
+            Expr::Float(n) => n.to_string(),
             Expr::Symbol(s) => s.clone(),
             Expr::Str(s) => format!("\"{}\"", s.replace("\"", "\\\"")),
             Expr::List(list) => {

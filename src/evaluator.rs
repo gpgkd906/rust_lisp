@@ -15,7 +15,7 @@ impl Evaluator {
                     .cloned()
                     .ok_or_else(|| LispError::new(&format!("Undefined symbol: {}", symbol)))
             }
-            Expr::Number(_) | Expr::Str(_) => Ok(ast.clone()),
+            Expr::Number(_) | Expr::Float(_) | Expr::Str(_) => Ok(ast.clone()),
             Expr::List(list) => {
                 if list.is_empty() {
                     return Ok(Expr::List(vec![]));

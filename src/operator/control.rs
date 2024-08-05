@@ -4,8 +4,16 @@ use crate::environment::Environment;
 use crate::exception::LispError;
 use crate::expression::Expr;
 use crate::evaluator::Evaluator;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Mutex;
+use lazy_static::lazy_static;
 
 pub struct Control;
+
+// 全局原子计数器
+lazy_static! {
+    static ref GENSYM_COUNTER: Mutex<AtomicUsize> = Mutex::new(AtomicUsize::new(0));
+}
 
 impl Control {
     pub fn eval_cond(conditions: &[Expr], env: &mut Environment) -> Result<Expr, LispError> {
@@ -61,11 +69,18 @@ impl Control {
             Ok(Expr::List(vec![])) // 返回假值 nil
         }
     }
+
+    pub fn eval_gensym(_: &[Expr], _: &mut Environment) -> Result<Expr, LispError> {
+        let mut counter = GENSYM_COUNTER.lock().unwrap();
+        let gensym_id = counter.fetch_add(1, Ordering::SeqCst);
+        Ok(Expr::Symbol(format!("#:G{}", gensym_id)))
+    }
 }
 
 pub fn register_control_operators() {
     OperatorRegistry::register("cond", Control::eval_cond);
     OperatorRegistry::register("not", Control::eval_not);
+    OperatorRegistry::register("gensym", Control::eval_gensym);
 }
 
 #[cfg(test)]
@@ -297,5 +312,46 @@ mod tests {
     
         let result = Evaluator::eval(&expr, &mut env);
         assert_eq!(result, Err(LispError::new("Cond clause must be a list")));
+    }
+
+    #[test]
+    fn test_gensym_unique_symbols() {
+        let mut env = setup_environment();
+        
+        let gensym1 = Control::eval_gensym(&[], &mut env).unwrap();
+        let gensym2 = Control::eval_gensym(&[], &mut env).unwrap();
+
+        assert_ne!(gensym1, gensym2);
+        
+        if let (Expr::Symbol(sym1), Expr::Symbol(sym2)) = (gensym1, gensym2) {
+            assert!(sym1.starts_with("#:G"));
+            assert!(sym2.starts_with("#:G"));
+        } else {
+            panic!("Gensym did not return symbols");
+        }
+    }
+
+    #[test]
+    fn test_setf_and_gensym() {
+        let mut env = setup_environment();
+        
+        // [17] (setf seed (gensym))
+        let setf_expr = Expr::List(vec![
+            Expr::Symbol("setf".to_string()),
+            Expr::Symbol("seed".to_string()),
+            Expr::List(vec![Expr::Symbol("gensym".to_string())]),
+        ]);
+        let result = Evaluator::eval(&setf_expr, &mut env).unwrap();
+        
+        if let Expr::Symbol(ref seed) = result { // 使用 ref 关键字避免移动
+            assert!(seed.starts_with("#:G"));
+        } else {
+            panic!("Expected gensym result to be a symbol");
+        }
+    
+        // [18] seed
+        let seed_expr = Expr::Symbol("seed".to_string());
+        let seed_result = Evaluator::eval(&seed_expr, &mut env).unwrap();
+        assert_eq!(seed_result, result); // 确保 result 和 seed_result 相同
     }    
 }

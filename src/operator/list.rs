@@ -12,19 +12,19 @@ impl ListOps {
         if args.len() != 2 {
             return Err(LispError::new("cons requires exactly two arguments"));
         }
-
+    
         let first = Evaluator::eval(&args[0], env)?;
         let second = Evaluator::eval(&args[1], env)?;
-
+    
         match second {
             Expr::List(mut list) => {
                 list.insert(0, first);
                 Ok(Expr::List(list))
             }
-            _ => Err(LispError::new("cons: second argument must be a list")),
+            _ => Ok(Expr::DottedPair(Box::new(first), Box::new(second))),
         }
     }
-
+    
     pub fn eval_car(args: &[Expr], env: &mut Environment) -> Result<Expr, LispError> {
         if args.len() != 1 {
             return Err(LispError::new("car requires exactly one argument"));
@@ -120,19 +120,19 @@ mod tests {
     fn test_eval_cons_invalid_second_argument() {
         let mut env = setup_environment();
         
-        // cons with a non-list second argument should fail
-        let result = ListOps::eval_cons(
-            &[
-                Expr::Number(1),
-                Expr::Number(2), // not a list
-            ],
-            &mut env,
+        // cons with a non-list second argument should create a dotted pair
+        let expr = Expr::List(vec![
+            Expr::Symbol("cons".to_string()),
+            Expr::Number(1),
+            Expr::Number(2), // not a list
+        ]);
+        
+        let result = Evaluator::eval(&expr, &mut env);
+        assert_eq!(
+            result,
+            Ok(Expr::DottedPair(Box::new(Expr::Number(1)), Box::new(Expr::Number(2))))
         );
-        assert!(result.is_err());
-        if let Err(err) = result {
-            assert_eq!(err.to_string(), "cons: second argument must be a list");
-        }
-    }
+    }    
 
     #[test]
     fn test_eval_car_success() {
@@ -261,19 +261,20 @@ mod tests {
     #[test]
     fn test_eval_cons_with_non_list_second_argument() {
         let mut env = setup_environment();
-    
-        // 第二个参数为非列表
+        
+        // cons with a non-list second argument should create a dotted pair
         let expr = Expr::List(vec![
             Expr::Symbol("cons".to_string()),
             Expr::Number(1),
-            Expr::Number(2), // 非列表
+            Expr::Number(2), // not a list
         ]);
+        
         let result = Evaluator::eval(&expr, &mut env);
-        assert!(result.is_err());
-        if let Err(err) = result {
-            assert_eq!(err.to_string(), "cons: second argument must be a list");
-        }
-    }
+        assert_eq!(
+            result,
+            Ok(Expr::DottedPair(Box::new(Expr::Number(1)), Box::new(Expr::Number(2))))
+        );
+    }    
     
     #[test]
     fn test_eval_car_with_non_list_argument() {
@@ -306,5 +307,89 @@ mod tests {
             assert_eq!(err.to_string(), "cdr: argument must be a list");
         }
     }
+
+    #[test]
+    fn test_cons_with_list() {
+        let mut env = Environment::initialize();
+        let a = Expr::List(vec![Expr::Number(1), Expr::Number(2), Expr::Number(3)]);
+        env.set_symbol("a".to_string(), a.clone());
+        
+        let expr = Expr::List(vec![
+            Expr::Symbol("cons".to_string()),
+            Expr::Number(4),
+            Expr::Symbol("a".to_string()),
+        ]);
+        
+        let result = Evaluator::eval(&expr, &mut env).unwrap();
+        assert_eq!(
+            result,
+            Expr::List(vec![Expr::Number(4), Expr::Number(1), Expr::Number(2), Expr::Number(3)])
+        );
+    }
+
+    #[test]
+    fn test_cons_with_dotted_pair() {
+        let mut env = Environment::initialize();
+        let a = Expr::List(vec![Expr::Number(1), Expr::Number(2), Expr::Number(3)]);
+        env.set_symbol("a".to_string(), a.clone());
+        
+        let expr = Expr::List(vec![
+            Expr::Symbol("cons".to_string()),
+            Expr::Symbol("a".to_string()),
+            Expr::Number(4),
+        ]);
+        
+        let result = Evaluator::eval(&expr, &mut env).unwrap();
+        assert_eq!(
+            result,
+            Expr::DottedPair(Box::new(a), Box::new(Expr::Number(4)))  // Removed .clone()
+        );
+    }
+
+    #[test]
+    fn test_setf_and_cons() {
+        let mut env = Environment::initialize();
+        
+        // [1] (setf a '(1 2 3))
+        let setf_expr = Expr::List(vec![
+            Expr::Symbol("setf".to_string()),
+            Expr::Symbol("a".to_string()),
+            Expr::List(vec![
+                Expr::Symbol("quote".to_string()), // 使用 quote 保证列表
+                Expr::List(vec![Expr::Number(1), Expr::Number(2), Expr::Number(3)])
+            ]),
+        ]);
+        let result = Evaluator::eval(&setf_expr, &mut env).unwrap();
+        assert_eq!(
+            result,
+            Expr::List(vec![Expr::Number(1), Expr::Number(2), Expr::Number(3)])
+        );
     
+        // [2] (cons 4 a)
+        let cons_expr1 = Expr::List(vec![
+            Expr::Symbol("cons".to_string()),
+            Expr::Number(4),
+            Expr::Symbol("a".to_string()),
+        ]);
+        let result1 = Evaluator::eval(&cons_expr1, &mut env).unwrap();
+        assert_eq!(
+            result1,
+            Expr::List(vec![Expr::Number(4), Expr::Number(1), Expr::Number(2), Expr::Number(3)])
+        );
+    
+        // [3] (cons a 4)
+        let cons_expr2 = Expr::List(vec![
+            Expr::Symbol("cons".to_string()),
+            Expr::Symbol("a".to_string()),
+            Expr::Number(4),
+        ]);
+        let result2 = Evaluator::eval(&cons_expr2, &mut env).unwrap();
+        assert_eq!(
+            result2,
+            Expr::DottedPair(
+                Box::new(Expr::List(vec![Expr::Number(1), Expr::Number(2), Expr::Number(3)])),
+                Box::new(Expr::Number(4))
+            )
+        );
+    }
 }

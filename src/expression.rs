@@ -9,6 +9,7 @@ pub enum Expr {
     Float(f64),
     Str(String),
     List(Vec<Expr>),
+    DottedPair(Box<Expr>, Box<Expr>),
 }
 
 impl fmt::Display for Expr {
@@ -21,7 +22,8 @@ impl fmt::Display for Expr {
             Expr::List(list) => {
                 let list_str: Vec<String> = list.iter().map(|expr| format!("{}", expr)).collect();
                 write!(f, "({})", list_str.join(" "))
-            }
+            },
+            Expr::DottedPair(car, cdr) => write!(f, "({} . {})", car, cdr),
         }
     }
 }
@@ -34,6 +36,7 @@ impl PartialEq for Expr {
             (Expr::Float(a), Expr::Float(b)) => a == b,
             (Expr::Str(a), Expr::Str(b)) => a == b,
             (Expr::List(a), Expr::List(b)) => a == b,
+            (Expr::DottedPair(a1, a2), Expr::DottedPair(b1, b2)) => a1 == b1 && a2 == b2,
             _ => false,
         }
     }
@@ -62,6 +65,14 @@ impl Expr {
         matches!(self, Expr::List(_))
     }
 
+    pub fn is_float(&self) -> bool {
+        matches!(self, Expr::Float(_))
+    }
+
+    pub fn is_dotted_pair(&self) -> bool {
+        matches!(self, Expr::DottedPair(_, _))
+    }
+
     #[allow(dead_code)]
     pub fn to_string(&self) -> String {
         match self {
@@ -73,6 +84,7 @@ impl Expr {
                 let contents: Vec<String> = list.iter().map(|e| e.to_string()).collect();
                 format!("({})", contents.join(" "))
             }
+            Expr::DottedPair(car, cdr) => format!("({} . {})", car, cdr),
         }
     }
 }

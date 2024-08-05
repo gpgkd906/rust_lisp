@@ -44,6 +44,11 @@ impl Evaluator {
                     _ => Err(LispError::new("Cannot evaluate a list without a valid operator")),
                 }
             }
+            Expr::DottedPair(car, cdr) => {
+                let car_expr = Evaluator::eval(car, env)?;
+                let cdr_expr = Evaluator::eval(cdr, env)?;
+                Ok(Expr::DottedPair(Box::new(car_expr), Box::new(cdr_expr)))
+            }
         }
     }
 }

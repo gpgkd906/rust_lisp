@@ -68,7 +68,7 @@ impl Expr {
             Expr::Number(n) => n.to_string(),
             Expr::Float(n) => n.to_string(),
             Expr::Symbol(s) => s.clone(),
-            Expr::Str(s) => format!("\"{}\"", s.replace("\"", "\\\"")),
+            Expr::Str(s) => format!("\"{}\"", s.replace("\\", "\\\\").replace("\"", "\\\"")),
             Expr::List(list) => {
                 let contents: Vec<String> = list.iter().map(|e| e.to_string()).collect();
                 format!("({})", contents.join(" "))
@@ -322,5 +322,193 @@ mod tests {
             ]),
         ]);
         assert_eq!(format!("{}", expr), "(define (square lambda (x) (* x x)))");
+    }
+
+    #[test]
+    fn test_to_string_float() {
+        let expr = Expr::Float(42.5);
+        assert_eq!(expr.to_string(), "42.5");
+    }
+
+    // 测试大浮点数的字符串化
+    #[test]
+    fn test_to_string_large_float() {
+        let expr = Expr::Float(1234567890.123);
+        assert_eq!(expr.to_string(), "1234567890.123");
+    }
+
+    // 测试空字符串
+    #[test]
+    fn test_to_string_empty_string() {
+        let expr = Expr::Str("".to_string());
+        assert_eq!(expr.to_string(), "\"\"");
+    }
+
+    // 测试列表中包含空列表
+    #[test]
+    fn test_to_string_list_with_empty_list() {
+        let expr = Expr::List(vec![
+            Expr::Symbol("+".to_string()),
+            Expr::List(vec![]),
+            Expr::Number(2),
+        ]);
+        assert_eq!(expr.to_string(), "(+ () 2)");
+    }
+
+    // 测试带有嵌套空列表的列表
+    #[test]
+    fn test_to_string_nested_empty_list() {
+        let expr = Expr::List(vec![
+            Expr::List(vec![
+                Expr::List(vec![])
+            ])
+        ]);
+        assert_eq!(expr.to_string(), "((()))");
+    }
+
+    // 测试具有特殊字符的字符串
+    #[test]
+    fn test_to_string_special_characters() {
+        let expr = Expr::Str("Hello \"world\"!".to_string());
+        assert_eq!(expr.to_string(), "\"Hello \\\"world\\\"!\"");
+    }
+
+    // 测试嵌套的带引号字符串
+    #[test]
+    fn test_to_string_nested_quoted_string() {
+        let expr = Expr::Str("\"nested \\\"quotes\\\"\"".to_string());
+        assert_eq!(expr.to_string(), "\"\\\"nested \\\\\\\"quotes\\\\\\\"\\\"\"");
+    }
+
+    #[test]
+    fn test_to_string_escaped_backslashes() {
+        let expr = Expr::Str("This is a backslash: \\".to_string());
+        assert_eq!(expr.to_string(), "\"This is a backslash: \\\\\"");
+    }
+    
+    #[test]
+    fn test_to_string_multiple_nested_quotes() {
+        let expr = Expr::Str("\"This is \\\"very\\\" nested\"".to_string());
+        assert_eq!(expr.to_string(), "\"\\\"This is \\\\\\\"very\\\\\\\" nested\\\"\"");
+    }
+    
+    #[test]
+    fn test_to_string_multiple_backslashes_and_quotes() {
+        let expr = Expr::Str("Backslash \\ and quote \"".to_string());
+        assert_eq!(expr.to_string(), "\"Backslash \\\\ and quote \\\"\"");
+    }
+    
+    #[test]
+    fn test_to_string_nested_quoted_list() {
+        let expr = Expr::List(vec![
+            Expr::Str("\"first\"".to_string()),
+            Expr::Str("\"second \\\"nested\\\"\"".to_string()),
+        ]);
+        assert_eq!(expr.to_string(), "(\"\\\"first\\\"\" \"\\\"second \\\\\\\"nested\\\\\\\"\\\"\")");
+    }
+    
+    #[test]
+    fn test_to_string_multiple_special_characters() {
+        let expr = Expr::Str("Special characters: !@#$%^&*()".to_string());
+        assert_eq!(expr.to_string(), "\"Special characters: !@#$%^&*()\"");
+    }
+    
+    #[test]
+    fn test_to_string_multiple_escaped_quotes_and_symbols() {
+        let expr = Expr::Str("Symbols: \"lambda\" 'quote' \\backslash\\".to_string());
+        assert_eq!(expr.to_string(), "\"Symbols: \\\"lambda\\\" 'quote' \\\\backslash\\\\\"");
+    }
+
+    // 测试浮点数边界情况
+    #[test]
+    fn test_to_string_small_float() {
+        let expr = Expr::Float(0.0000000001);
+        assert_eq!(format!("{:e}", expr.to_string().parse::<f64>().unwrap()), "1e-10");
+    }
+    
+    // 测试更复杂的嵌套结构
+    #[test]
+    fn test_to_string_complex_nested_list_with_all_types() {
+        let expr = Expr::List(vec![
+            Expr::Symbol("lambda".to_string()),
+            Expr::List(vec![Expr::Symbol("x".to_string())]),
+            Expr::List(vec![
+                Expr::Symbol("if".to_string()),
+                Expr::Symbol("x".to_string()),
+                Expr::List(vec![
+                    Expr::Symbol("*".to_string()),
+                    Expr::Number(2),
+                    Expr::Float(3.14),
+                ]),
+                Expr::List(vec![
+                    Expr::Symbol("quote".to_string()),
+                    Expr::Str("false".to_string()),
+                ]),
+            ]),
+        ]);
+        assert_eq!(
+            expr.to_string(),
+            "(lambda (x) (if x (* 2 3.14) (quote \"false\")))"
+        );
+    }
+
+    // 测试 PartialEq 实现
+    #[test]
+    fn test_partial_eq_for_numbers() {
+        let expr1 = Expr::Number(42);
+        let expr2 = Expr::Number(42);
+        let expr3 = Expr::Number(43);
+        assert_eq!(expr1, expr2);
+        assert_ne!(expr1, expr3);
+    }
+
+    #[test]
+    fn test_partial_eq_for_floats() {
+        let expr1 = Expr::Float(42.0);
+        let expr2 = Expr::Float(42.0);
+        let expr3 = Expr::Float(43.0);
+        assert_eq!(expr1, expr2);
+        assert_ne!(expr1, expr3);
+    }
+
+    #[test]
+    fn test_partial_eq_for_symbols() {
+        let expr1 = Expr::Symbol("foo".to_string());
+        let expr2 = Expr::Symbol("foo".to_string());
+        let expr3 = Expr::Symbol("bar".to_string());
+        assert_eq!(expr1, expr2);
+        assert_ne!(expr1, expr3);
+    }
+
+    #[test]
+    fn test_partial_eq_for_strings() {
+        let expr1 = Expr::Str("hello".to_string());
+        let expr2 = Expr::Str("hello".to_string());
+        let expr3 = Expr::Str("world".to_string());
+        assert_eq!(expr1, expr2);
+        assert_ne!(expr1, expr3);
+    }
+
+    #[test]
+    fn test_partial_eq_for_lists() {
+        let expr1 = Expr::List(vec![Expr::Number(1), Expr::Symbol("x".to_string())]);
+        let expr2 = Expr::List(vec![Expr::Number(1), Expr::Symbol("x".to_string())]);
+        let expr3 = Expr::List(vec![Expr::Number(2), Expr::Symbol("x".to_string())]);
+        assert_eq!(expr1, expr2);
+        assert_ne!(expr1, expr3);
+    }
+
+    #[test]
+    fn test_partial_eq_across_types() {
+        let expr_number = Expr::Number(42);
+        let expr_float = Expr::Float(42.0);
+        let expr_symbol = Expr::Symbol("42".to_string());
+        let expr_string = Expr::Str("42".to_string());
+        let expr_list = Expr::List(vec![Expr::Number(42)]);
+
+        assert_ne!(expr_number, expr_float);
+        assert_ne!(expr_number, expr_symbol);
+        assert_ne!(expr_number, expr_string);
+        assert_ne!(expr_number, expr_list);
     }
 }

@@ -5,6 +5,7 @@ mod evaluator;
 mod exception;
 mod expression;
 mod operator;
+mod macro_expander;
 
 use crate::environment::Environment;
 use crate::parser::Parser;
@@ -61,7 +62,7 @@ impl Lisp {
                     open_parens = open_parens.saturating_sub(input.chars().filter(|&ch| ch == ')').count());
 
                     if open_parens == 0 {
-                        match Parser::read(&input_accumulated) {
+                        match Parser::read(&input_accumulated, env) {
                             Ok(ast) => {
                                 let result = Evaluator::eval(&ast, env);
                                 match result {
@@ -93,7 +94,7 @@ impl Lisp {
                     open_parens -= line.chars().filter(|&ch| ch == ')').count();
     
                     if open_parens == 0 {
-                        match Parser::read(&input_accumulated) {
+                        match Parser::read(&input_accumulated, env) {
                             Ok(ast) => {
                                 let result = Evaluator::eval(&ast, env);
                                 match result {
@@ -420,11 +421,12 @@ mod tests {
     #[test]
     fn test_parser_error_handling() {
         let input = "(+ 1 2"; // 缺少右括号
-        let result = Parser::read(input);
+        let mut env = Environment::initialize();
+        let result = Parser::read(input, &mut env);
         assert_eq!(result, Err(LispError::new("Parse Error: Unexpected end of list")));
     
         let input = "(+ 1 2))"; // 多余的右括号
-        let result = Parser::read(input);
+        let result = Parser::read(input, &mut env);
         assert_eq!(result, Err(LispError::new("Unexpected input after list")));
     }
     

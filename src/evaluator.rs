@@ -48,7 +48,8 @@ impl Evaluator {
                 let car_expr = Evaluator::eval(car, env)?;
                 let cdr_expr = Evaluator::eval(cdr, env)?;
                 Ok(Expr::DottedPair(Box::new(car_expr), Box::new(cdr_expr)))
-            }
+            },
+            Expr::Macro(_, _) => Err(LispError::new("Macros should be expanded before evaluation")),
         }
     }
 }

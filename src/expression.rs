@@ -10,6 +10,7 @@ pub enum Expr {
     Str(String),
     List(Vec<Expr>),
     DottedPair(Box<Expr>, Box<Expr>),
+    Macro(Vec<Expr>, Box<Expr>),
 }
 
 impl fmt::Display for Expr {
@@ -24,6 +25,7 @@ impl fmt::Display for Expr {
                 write!(f, "({})", list_str.join(" "))
             },
             Expr::DottedPair(car, cdr) => write!(f, "({} . {})", car, cdr),
+            Expr::Macro(_, _) => write!(f, "<macro>"),
         }
     }
 }
@@ -37,6 +39,7 @@ impl PartialEq for Expr {
             (Expr::Str(a), Expr::Str(b)) => a == b,
             (Expr::List(a), Expr::List(b)) => a == b,
             (Expr::DottedPair(a1, a2), Expr::DottedPair(b1, b2)) => a1 == b1 && a2 == b2,
+            (Expr::Macro(_, _), Expr::Macro(_, _)) => false, // 宏不应该被比较
             _ => false,
         }
     }
@@ -87,6 +90,7 @@ impl Expr {
                 format!("({})", contents.join(" "))
             }
             Expr::DottedPair(car, cdr) => format!("({} . {})", car, cdr),
+            Expr::Macro(_, _) => "<macro>".to_string(),
         }
     }
 }

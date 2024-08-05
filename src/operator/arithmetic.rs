@@ -146,6 +146,16 @@ mod tests {
     }
 
     #[test]
+    fn test_eval_add_with_floats() {
+        let mut env = Environment::initialize();
+        let args = vec![Expr::Float(2.5), Expr::Number(3), Expr::Float(4.5)];
+        let result = Arithmetic::eval_add(&args, &mut env);
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Expr::Float(10.0));
+    }
+
+    #[test]
     fn test_eval_add_non_number_argument() {
         let mut env = Environment::initialize();
         let args = vec![Expr::Number(2), Expr::Symbol("a".to_string())];
@@ -168,6 +178,16 @@ mod tests {
     }
 
     #[test]
+    fn test_eval_sub_with_floats() {
+        let mut env = Environment::initialize();
+        let args = vec![Expr::Float(10.5), Expr::Float(3.2), Expr::Number(2)];
+        let result = Arithmetic::eval_subtract(&args, &mut env);
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Expr::Float(5.3));
+    }
+
+    #[test]
     fn test_eval_sub_no_arguments() {
         let mut env = Environment::initialize();
         let args: Vec<Expr> = vec![];
@@ -177,6 +197,16 @@ mod tests {
         if let Err(err) = result {
             assert_eq!(err.to_string(), "Subtraction requires at least one argument");
         }
+    }
+
+    #[test]
+    fn test_eval_sub_single_argument() {
+        let mut env = Environment::initialize();
+        let args = vec![Expr::Number(5)];
+        let result = Arithmetic::eval_subtract(&args, &mut env);
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Expr::Number(5)); // Subtraction with a single argument returns the argument itself
     }
 
     #[test]
@@ -202,6 +232,16 @@ mod tests {
     }
 
     #[test]
+    fn test_eval_mul_with_floats() {
+        let mut env = Environment::initialize();
+        let args = vec![Expr::Float(2.5), Expr::Number(3), Expr::Float(4.0)];
+        let result = Arithmetic::eval_multiply(&args, &mut env);
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Expr::Float(30.0));
+    }
+
+    #[test]
     fn test_eval_mul_non_number_argument() {
         let mut env = Environment::initialize();
         let args = vec![Expr::Number(2), Expr::Symbol("a".to_string())];
@@ -224,9 +264,31 @@ mod tests {
     }
 
     #[test]
+    fn test_eval_div_with_floats() {
+        let mut env = Environment::initialize();
+        let args = vec![Expr::Float(10.0), Expr::Number(4)];
+        let result = Arithmetic::eval_divide(&args, &mut env);
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Expr::Float(2.5));
+    }
+
+    #[test]
     fn test_eval_div_by_zero() {
         let mut env = Environment::initialize();
         let args = vec![Expr::Number(10), Expr::Number(0)];
+        let result = Arithmetic::eval_divide(&args, &mut env);
+
+        assert!(result.is_err());
+        if let Err(err) = result {
+            assert_eq!(err.to_string(), "Division by zero");
+        }
+    }
+
+    #[test]
+    fn test_eval_div_by_zero_float() {
+        let mut env = Environment::initialize();
+        let args = vec![Expr::Float(10.0), Expr::Float(0.0)];
         let result = Arithmetic::eval_divide(&args, &mut env);
 
         assert!(result.is_err());
@@ -251,20 +313,45 @@ mod tests {
     fn test_eval_div_incorrect_number_of_arguments() {
         let mut env = Environment::initialize();
 
-        // 测试少于一个参数
+        // Test with no arguments
         let args: Vec<Expr> = vec![];
         let result = Arithmetic::eval_divide(&args, &mut env);
         assert!(result.is_err());
         if let Err(err) = result {
             assert_eq!(err.to_string(), "Division requires at least one argument");
         }
+
+        // Test with one argument
+        let args = vec![Expr::Number(10)];
+        let result = Arithmetic::eval_divide(&args, &mut env);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Expr::Number(10)); // Division with a single argument returns the argument itself
+    }
+
+    #[test]
+    fn test_eval_div_nested_division_with_floats() {
+        let mut env = Environment::initialize();
+
+        // Construct expression (/ 100 (/ 10 2))
+        let expr = Expr::List(vec![
+            Expr::Symbol("/".to_string()),
+            Expr::Number(100),
+            Expr::List(vec![
+                Expr::Symbol("/".to_string()),
+                Expr::Number(10),
+                Expr::Number(2),
+            ]),
+        ]);
+
+        let result = Evaluator::eval(&expr, &mut env);
+        assert_eq!(result, Ok(Expr::Number(20))); // Should return 20
     }
 
     #[test]
     fn test_eval_nested_multiplication_with_float() {
         let mut env = Environment::initialize();
         
-        // 构造表达式 (* 100 5 (/ 3 2))
+        // Construct expression (* 100 5 (/ 3 2))
         let expr = Expr::List(vec![
             Expr::Symbol("*".to_string()),
             Expr::Number(100),
@@ -277,6 +364,16 @@ mod tests {
         ]);
 
         let result = Evaluator::eval(&expr, &mut env);
-        assert_eq!(result, Ok(Expr::Float(750.0))); // 应返回750.0
+        assert_eq!(result, Ok(Expr::Float(750.0))); // Should return 750.0
+    }
+
+    #[test]
+    fn test_eval_large_numbers() {
+        let mut env = Environment::initialize();
+        let args = vec![Expr::Number(1_000_000_000), Expr::Number(2_000_000_000)];
+        let result = Arithmetic::eval_add(&args, &mut env);
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Expr::Number(3_000_000_000));
     }
 }

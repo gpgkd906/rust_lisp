@@ -275,29 +275,4 @@ mod tests {
         let result = Comparison::eval_not_equal(&[Expr::Symbol("a".to_string()), Expr::Symbol("a".to_string())], &mut env);
         assert_eq!(result, Ok(Expr::List(vec![])));
     }
-
-    // #[test]
-    // fn test_comparison_with_invalid_arguments() {
-    //     let mut env = setup_environment();
-
-    //     let result = Comparison::eval_greater(&[Expr::Symbol("a".to_string()), Expr::Number(3)], &mut env);
-    //     assert!(result.is_err());
-
-    //     let result = Comparison::eval_greater_equal(&[Expr::Number(3)], &mut env);
-    //     assert!(result.is_err());
-
-    //     let result = Comparison::eval_less(&[], &mut env);
-    //     assert!(result.is_err());
-
-    //     let result = Comparison::eval_less_equal(&[Expr::Number(3), Expr::Symbol("b".to_string())], &mut env);
-    //     assert!(result.is_err());
-
-    //     // Test equality with empty list should be false
-    //     let result = Comparison::eval_equal(&[Expr::List(vec![]), Expr::List(vec![Expr::Number(1)])], &mut env);
-    //     assert_eq!(result, Ok(Expr::List(vec![])));
-
-    //     // Test not equality with non-empty lists
-    //     let result = Comparison::eval_not_equal(&[Expr::List(vec![Expr::Number(1)]), Expr::List(vec![Expr::Number(1)])], &mut env);
-    //     assert_eq!(result, Ok(Expr::List(vec![])));
-    // }
 }

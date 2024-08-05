@@ -33,5 +33,5 @@ lisp:> (fib 10)
 
 - [] add macro support (defmacro)
 - [*] add function support (defun)
-- [] add lambda support (lambda)
-- [] add test...
+- [*] add lambda support (lambda)
+- [*] add test...

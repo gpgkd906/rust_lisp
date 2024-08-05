@@ -157,7 +157,6 @@ impl Comparison {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

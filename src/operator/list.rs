@@ -73,7 +73,6 @@ impl ListOps {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

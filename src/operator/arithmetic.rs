@@ -74,8 +74,6 @@ impl Arithmetic {
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;

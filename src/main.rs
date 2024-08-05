@@ -79,3 +79,15 @@ fn main() {
     let mut env = Lisp::initialize(); // 初始化全局环境
     Lisp::repl(&mut env);  // 可以切换为 `Lisp::interpreter("file.Lisp", &mut env);` 进行文件解析
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_initialize_environment() {
+        let env = Lisp::initialize();
+        assert!(env.get_symbol("T").is_some());
+        assert_eq!(env.get_symbol("NIL"), Some(&crate::expression::Expr::List(vec![])));
+    }
+}

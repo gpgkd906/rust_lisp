@@ -24,8 +24,6 @@ impl SetOps {
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -70,8 +70,6 @@ impl Lambda {
     }    
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -63,8 +63,6 @@ impl Control {
     }
 }
 
-// operator/control.rs
-
 #[cfg(test)]
 mod tests {
     use super::*;

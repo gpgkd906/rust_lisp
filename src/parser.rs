@@ -13,7 +13,7 @@ impl Parser {
         let expr = Parser::parse_expr(&mut chars)?;
 
         // 确保解析完成后没有多余的输入
-        Parser::skip_whitespace(&mut chars);
+        Parser::skip_whitespace_and_comments(&mut chars);
         if chars.peek().is_some() {
             return Err(LispError::new("Unexpected input after list"));
         }
@@ -22,7 +22,7 @@ impl Parser {
     }
 
     fn parse_expr(chars: &mut std::iter::Peekable<Chars>) -> Result<Expr, LispError> {
-        Parser::skip_whitespace(chars);
+        Parser::skip_whitespace_and_comments(chars);
         if let Some(&ch) = chars.peek() {
             match ch {
                 '(' => Parser::parse_list(chars),
@@ -56,7 +56,7 @@ impl Parser {
         chars.next(); // 跳过 '('
         let mut list = Vec::new();
         loop {
-            Parser::skip_whitespace(chars);
+            Parser::skip_whitespace_and_comments(chars);
             if let Some(&ch) = chars.peek() {
                 if ch == ')' {
                     chars.next(); // 跳过 ')'
@@ -108,28 +108,29 @@ impl Parser {
     fn parse_number(chars: &mut std::iter::Peekable<Chars>) -> Result<Expr, LispError> {
         let mut number = String::new();
         let mut is_number = false;
-    
+
         // 读取所有连续的数字字符
         while let Some(&ch) = chars.peek() {
-            if !ch.is_digit(10) {
+            if ch.is_digit(10) {
+                number.push(chars.next().unwrap());
+                is_number = true;
+            } else {
                 break;
             }
-            number.push(chars.next().unwrap());
-            is_number = true;
         }
-    
-        // 确保至少有一个数字字符被读取
+
+        // 检查是否成功读取了一个有效的数字
         if !is_number {
             return Err(LispError::new("Invalid number"));
         }
-    
+
         // 检查后续字符是否为非法字符
         if let Some(&ch) = chars.peek() {
-            if !ch.is_whitespace() && ch != '(' && ch != ')' {
+            if !ch.is_whitespace() && ch != '(' && ch != ')' && ch != ';' {
                 return Err(LispError::new("Invalid number"));
             }
         }
-    
+
         // 将字符串解析为整数
         number.parse::<i64>()
             .map(Expr::Number)
@@ -151,16 +152,26 @@ impl Parser {
         Err(LispError::new("Unterminated string literal"))
     }
 
-    // 跳过空白字符
-    fn skip_whitespace(chars: &mut std::iter::Peekable<Chars>) {
+    // 跳过空白字符和注释
+    fn skip_whitespace_and_comments(chars: &mut std::iter::Peekable<Chars>) {
         while let Some(&ch) = chars.peek() {
-            if !ch.is_whitespace() {
+            if ch.is_whitespace() {
+                chars.next();
+            } else if ch == ';' {
+                // 跳过整行注释
+                while let Some(&ch) = chars.peek() {
+                    chars.next();
+                    if ch == '\n' {
+                        break;
+                    }
+                }
+            } else {
                 break;
             }
-            chars.next();
         }
     }
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -201,6 +212,20 @@ mod tests {
         let input = "42abc"; // 无效数字后跟随非法字符
         let result = Parser::read(input);
         assert_eq!(result, Err(LispError::new("Invalid number")));
+    }
+
+    #[test]
+    fn test_parse_number_with_inline_comment() {
+        let input = "123;test";
+        let result = Parser::read(input);
+        assert_eq!(result, Ok(Expr::Number(123))); // 解析成功，忽略注释部分
+    }
+
+    #[test]
+    fn test_parse_number_with_space_and_comment() {
+        let input = "123 ;test";
+        let result = Parser::read(input);
+        assert_eq!(result, Ok(Expr::Number(123))); // 解析成功，忽略注释部分
     }
 
     #[test]
@@ -320,5 +345,36 @@ mod tests {
         let input = "(1 (2 3";
         let result = Parser::read(input);
         assert_eq!(result, Err(LispError::new("Unexpected end of list")));
+    }
+
+    #[test]
+    fn test_parse_with_comments() {
+        let input = "
+            ; this is a comment
+            (fib 6) ;should be 8
+            ;exit
+        ";
+        let result = Parser::read(input);
+        assert!(result.is_ok());
+        if let Ok(expr) = result {
+            assert_eq!(expr, Expr::List(vec![
+                Expr::Symbol("fib".to_string()), 
+                Expr::Number(6)
+            ]));
+        }
+    }
+
+    #[test]
+    fn test_parse_inline_comment() {
+        let input = "(+ 1 2) ; this adds two numbers";
+        let result = Parser::read(input);
+        assert!(result.is_ok());
+        if let Ok(expr) = result {
+            assert_eq!(expr, Expr::List(vec![
+                Expr::Symbol("+".to_string()), 
+                Expr::Number(1), 
+                Expr::Number(2)
+            ]));
+        }
     }
 }

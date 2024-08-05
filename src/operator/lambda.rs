@@ -4,6 +4,7 @@ use crate::environment::Environment;
 use crate::exception::LispError;
 use crate::expression::Expr;
 use crate::Evaluator;
+
 pub struct Lambda;
 
 impl Lambda {
@@ -246,6 +247,62 @@ mod tests {
             assert!(result.is_err());
         } else {
             panic!("Function call expression is not a list");
+        }
+    }
+
+    #[test]
+    fn test_eval_fib_function() {
+        let mut env = setup_environment();
+    
+        // 定义 Fibonacci 函数
+        let fib_defun = Expr::List(vec![
+            Expr::Symbol("fib".to_string()), // 函数名
+            Expr::List(vec![Expr::Symbol("n".to_string())]), // 参数列表
+            Expr::List(vec![ // 函数体
+                Expr::Symbol("cond".to_string()), 
+                Expr::List(vec![
+                    Expr::List(vec![Expr::Symbol("eq".to_string()), Expr::Symbol("n".to_string()), Expr::Number(1)]),
+                    Expr::Number(1),
+                ]),
+                Expr::List(vec![
+                    Expr::List(vec![Expr::Symbol("eq".to_string()), Expr::Symbol("n".to_string()), Expr::Number(0)]),
+                    Expr::Number(0),
+                ]),
+                Expr::List(vec![
+                    Expr::Symbol("t".to_string()),
+                    Expr::List(vec![
+                        Expr::Symbol("+".to_string()),
+                        Expr::List(vec![
+                            Expr::Symbol("fib".to_string()),
+                            Expr::List(vec![Expr::Symbol("-".to_string()), Expr::Symbol("n".to_string()), Expr::Number(1)]),
+                        ]),
+                        Expr::List(vec![
+                            Expr::Symbol("fib".to_string()),
+                            Expr::List(vec![Expr::Symbol("-".to_string()), Expr::Symbol("n".to_string()), Expr::Number(2)]),
+                        ]),
+                    ]),
+                ]),
+            ]),
+        ]);
+
+        if let Expr::List(ref list) = fib_defun {
+            let result = Lambda::eval_defun(list, &mut env);
+            assert_eq!(result, Ok(Expr::Symbol("fib".to_string())));
+        } else {
+            panic!("Fib defun expression is not a list");
+        }
+
+        // 调用 Fibonacci 函数
+        let fib_call = Expr::List(vec![
+            Expr::Symbol("fib".to_string()),
+            Expr::Number(6),
+        ]);
+
+        if let Expr::List(ref list) = fib_call {
+            let result = Lambda::eval_function_call("fib", &list[1..], &mut env);
+            assert_eq!(result, Ok(Expr::Number(8)));
+        } else {
+            panic!("Fib call expression is not a list");
         }
     }
 }

@@ -27,7 +27,7 @@ impl Parser {
         Ok(expr)
     }
 
-    fn parse_expr(chars: &mut std::iter::Peekable<Chars>) -> Result<Expr, LispError> {
+    pub fn parse_expr(chars: &mut std::iter::Peekable<Chars>) -> Result<Expr, LispError> {
         Parser::skip_whitespace_and_comments(chars);
         if let Some(&ch) = chars.peek() {
             match ch {
@@ -36,6 +36,16 @@ impl Parser {
                     chars.next(); // Skip the single quote
                     let quoted_expr = Parser::parse_expr(chars)?;
                     Ok(Expr::List(vec![Expr::Symbol("quote".to_string()), quoted_expr]))
+                }
+                '`' => {
+                    chars.next(); // Skip the backquote
+                    let quoted_expr = Parser::parse_expr(chars)?;
+                    Ok(Expr::List(vec![Expr::Symbol("quasiquote".to_string()), quoted_expr]))
+                }
+                ',' => {
+                    chars.next(); // Skip the comma
+                    let unquoted_expr = Parser::parse_expr(chars)?;
+                    Ok(Expr::List(vec![Expr::Symbol("unquote".to_string()), unquoted_expr]))
                 }
                 '"' => Parser::parse_string(chars),
                 '-' => {
@@ -59,7 +69,7 @@ impl Parser {
         } else {
             Err(LispError::new("Unexpected end of input"))
         }
-    }
+    }    
         
     fn parse_symbol_with_leading_minus(chars: &mut std::iter::Peekable<Chars>) -> Result<Expr, LispError> {
         let mut symbol = String::from("-");

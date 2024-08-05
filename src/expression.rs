@@ -65,10 +65,12 @@ impl Expr {
         matches!(self, Expr::List(_))
     }
 
+    #[allow(dead_code)]
     pub fn is_float(&self) -> bool {
         matches!(self, Expr::Float(_))
     }
 
+    #[allow(dead_code)]
     pub fn is_dotted_pair(&self) -> bool {
         matches!(self, Expr::DottedPair(_, _))
     }

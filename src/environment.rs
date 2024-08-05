@@ -7,6 +7,7 @@ use crate::expression::Expr;
 pub struct Environment {
     symbols: HashMap<String, Expr>,
     functions: HashMap<String, Expr>,
+    macros: HashMap<String, Expr>,
 }
 
 impl Environment {
@@ -15,6 +16,7 @@ impl Environment {
         let mut env = Environment {
             symbols: HashMap::new(),
             functions: HashMap::new(),
+            macros: HashMap::new(),
         };
         // 预定义一些 Lisp 常用符号
         env.set_symbol("T".to_string(), Expr::Symbol("T".to_string()));
@@ -38,5 +40,13 @@ impl Environment {
 
     pub fn get_function(&self, name: &str) -> Option<&Expr> {
         self.functions.get(name)
+    }
+
+    pub fn set_macro(&mut self, name: String, macro_def: Expr) {
+        self.macros.insert(name, macro_def);
+    }
+
+    pub fn get_macro(&self, name: &str) -> Option<&Expr> {
+        self.macros.get(name)
     }
 }

@@ -71,6 +71,44 @@ impl ListOps {
         }
         Ok(args[0].clone())
     }
+
+    pub fn eval_quasiquote(expr: &Expr, env: &mut Environment) -> Result<Expr, LispError> {
+        match expr {
+            Expr::List(list) => {
+                let mut result = Vec::new();
+                for element in list {
+                    match element {
+                        Expr::List(inner_list) => {
+                            if !inner_list.is_empty() {
+                                if let Expr::Symbol(s) = &inner_list[0] {
+                                    if s == "unquote" {
+                                        if inner_list.len() != 2 {
+                                            return Err(LispError::new("unquote requires exactly one argument"));
+                                        }
+                                        result.push(Evaluator::eval(&inner_list[1], env)?);
+                                        continue;
+                                    }
+                                }
+                            }
+                            // Recursively handle the elements in the list
+                            result.push(Self::eval_quasiquote(element, env)?);
+                        }
+                        _ => {
+                            result.push(Self::eval_quasiquote(element, env)?);
+                        }
+                    }
+                }
+                Ok(Expr::List(result))
+            }
+            // For non-list cases, return the expression itself
+            _ => Ok(expr.clone()),
+        }
+    }
+    
+    pub fn eval_unquote(_args: &[Expr], _env: &mut Environment) -> Result<Expr, LispError> {
+        Err(LispError::new("comma is illegal outside of backquote"))
+    }
+    
 }
 
 pub fn register_list_operators() {
@@ -79,6 +117,13 @@ pub fn register_list_operators() {
     OperatorRegistry::register("cdr", ListOps::eval_cdr);
     OperatorRegistry::register("length", ListOps::eval_length);
     OperatorRegistry::register("quote", ListOps::eval_quote);
+    OperatorRegistry::register("quasiquote", |args, env| {
+        if args.len() != 1 {
+            return Err(LispError::new("quasiquote requires exactly one argument"));
+        }
+        ListOps::eval_quasiquote(&args[0], env)
+    });
+    OperatorRegistry::register("unquote", ListOps::eval_unquote); // 注册 unquote
 }
 
 #[cfg(test)]
@@ -392,4 +437,79 @@ mod tests {
             )
         );
     }
+
+
+    #[test]
+    fn test_quasiquote_with_unquote() {
+        let mut env = setup_environment();
+        
+        // (setf lst '(a b c))
+        let setf_expr = Expr::List(vec![
+            Expr::Symbol("setf".to_string()),
+            Expr::Symbol("lst".to_string()),
+            Expr::List(vec![
+                Expr::Symbol("quote".to_string()),
+                Expr::List(vec![
+                    Expr::Symbol("a".to_string()),
+                    Expr::Symbol("b".to_string()),
+                    Expr::Symbol("c".to_string()),
+                ]),
+            ]),
+        ]);
+        let result = Evaluator::eval(&setf_expr, &mut env).unwrap();
+        assert_eq!(
+            result,
+            Expr::List(vec![
+                Expr::Symbol("a".to_string()),
+                Expr::Symbol("b".to_string()),
+                Expr::Symbol("c".to_string()),
+            ])
+        );
+    
+        // `(lst is ,lst)
+        let quasiquote_expr = Expr::List(vec![
+            Expr::Symbol("quasiquote".to_string()),
+            Expr::List(vec![
+                Expr::Symbol("lst".to_string()),
+                Expr::Symbol("is".to_string()),
+                Expr::List(vec![
+                    Expr::Symbol("unquote".to_string()),
+                    Expr::Symbol("lst".to_string()),
+                ]),
+            ]),
+        ]);
+        let quasiquote_result = Evaluator::eval(&quasiquote_expr, &mut env).unwrap();
+        assert_eq!(
+            quasiquote_result,
+            Expr::List(vec![
+                Expr::Symbol("lst".to_string()),
+                Expr::Symbol("is".to_string()),
+                Expr::List(vec![
+                    Expr::Symbol("a".to_string()),
+                    Expr::Symbol("b".to_string()),
+                    Expr::Symbol("c".to_string()),
+                ]),
+            ])
+        );
+    }
+    
+    #[test]
+    fn test_unquote_outside_quasiquote() {
+        let mut env = setup_environment();
+        
+        // ,lst
+        let unquote_expr = Expr::List(vec![
+            Expr::Symbol("unquote".to_string()),
+            Expr::Symbol("lst".to_string()),
+        ]);
+        
+        let result = Evaluator::eval(&unquote_expr, &mut env);
+        
+        // Ensure using unquote outside of quasiquote throws an error
+        assert!(result.is_err());
+        if let Err(err) = result {
+            assert_eq!(err.to_string(), "comma is illegal outside of backquote");
+        }
+    }
+    
 }

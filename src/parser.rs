@@ -1,5 +1,3 @@
-// parser.rs
-
 use crate::exception::LispError;
 use crate::expression::Expr;
 use std::str::Chars;
@@ -7,12 +5,12 @@ use std::str::Chars;
 pub struct Parser;
 
 impl Parser {
-    // 解析输入字符串并返回 AST
+    // Parse the input string and return the AST
     pub fn read(input: &str) -> Result<Expr, LispError> {
         let mut chars = input.chars().peekable();
         let expr = Parser::parse_expr(&mut chars)?;
 
-        // 确保解析完成后没有多余的输入
+        // Ensure there's no unexpected input after parsing
         Parser::skip_whitespace_and_comments(&mut chars);
         if chars.peek().is_some() {
             return Err(LispError::new("Unexpected input after list"));
@@ -27,17 +25,18 @@ impl Parser {
             match ch {
                 '(' => Parser::parse_list(chars),
                 '\'' => {
-                    chars.next(); // 跳过单引号
+                    chars.next(); // Skip the single quote
                     let quoted_expr = Parser::parse_expr(chars)?;
                     Ok(Expr::List(vec![Expr::Symbol("quote".to_string()), quoted_expr]))
                 }
                 '"' => Parser::parse_string(chars),
-                '-' => { // 检查减号或负号
-                    chars.next(); // 先取出'-'
+                '-' => {
+                    // Handle negative numbers and the minus symbol
+                    chars.next(); // Consume the '-'
                     if let Some(&next_ch) = chars.peek() {
-                        if next_ch.is_digit(10) { // 负号情况
+                        if next_ch.is_digit(10) {
                             Parser::parse_number_with_leading_sign(chars, true)
-                        } else { // 减号情况
+                        } else {
                             Ok(Expr::Symbol("-".to_string()))
                         }
                     } else {
@@ -53,13 +52,13 @@ impl Parser {
     }
 
     fn parse_list(chars: &mut std::iter::Peekable<Chars>) -> Result<Expr, LispError> {
-        chars.next(); // 跳过 '('
+        chars.next(); // Skip '('
         let mut list = Vec::new();
         loop {
             Parser::skip_whitespace_and_comments(chars);
             if let Some(&ch) = chars.peek() {
                 if ch == ')' {
-                    chars.next(); // 跳过 ')'
+                    chars.next(); // Skip ')'
                     break;
                 }
                 list.push(Parser::parse_expr(chars)?);
@@ -95,7 +94,7 @@ impl Parser {
             number.push(chars.next().unwrap());
         }
 
-        // 确保数字有效
+        // Ensure the number is valid
         if number.len() == 1 && is_negative {
             return Err(LispError::new("Invalid number"));
         }
@@ -109,12 +108,12 @@ impl Parser {
         let mut number = String::new();
         let mut is_float = false;
 
-        // 读取所有连续的数字字符，包括小数点
+        // Read all continuous digits and periods
         while let Some(&ch) = chars.peek() {
             if ch.is_digit(10) || ch == '.' {
                 if ch == '.' {
                     if is_float {
-                        return Err(LispError::new("Invalid float")); // 多个小数点的情况
+                        return Err(LispError::new("Invalid float"));
                     }
                     is_float = true;
                 }
@@ -124,19 +123,19 @@ impl Parser {
             }
         }
 
-        // 检查是否成功读取了一个有效的数字
+        // Ensure a valid number is read
         if number.is_empty() || number == "." {
             return Err(LispError::new("Invalid number"));
         }
 
-        // 检查下一个字符是否合法
+        // Check next character legality
         if let Some(&ch) = chars.peek() {
             if !ch.is_whitespace() && ch != '(' && ch != ')' && ch != ';' {
-                return Err(LispError::new("Invalid number")); // 确保后续字符合法
+                return Err(LispError::new("Invalid number"));
             }
         }
 
-        // 解析为整数或浮点数
+        // Parse as integer or float
         if is_float {
             number.parse::<f64>()
                 .map(Expr::Float)
@@ -149,12 +148,12 @@ impl Parser {
     }
     
     fn parse_string(chars: &mut std::iter::Peekable<Chars>) -> Result<Expr, LispError> {
-        chars.next(); // 跳过 '"'
+        chars.next(); // Skip '"'
         let mut string = String::new();
         while let Some(&ch) = chars.peek() {
             match ch {
                 '"' => {
-                    chars.next(); // 跳过结尾的 '"'
+                    chars.next(); // Skip the closing '"'
                     return Ok(Expr::Str(string));
                 }
                 _ => string.push(chars.next().unwrap()),
@@ -163,13 +162,13 @@ impl Parser {
         Err(LispError::new("Unterminated string literal"))
     }
 
-    // 跳过空白字符和注释
+    // Skip whitespace characters and comments
     fn skip_whitespace_and_comments(chars: &mut std::iter::Peekable<Chars>) {
         while let Some(&ch) = chars.peek() {
-            if ch.is_whitespace() {
+            if ch.is_whitespace() || ch == '\n' || ch == '\r' {
                 chars.next();
             } else if ch == ';' {
-                // 跳过整行注释
+                // Skip entire line comments
                 while let Some(&ch) = chars.peek() {
                     chars.next();
                     if ch == '\n' {
@@ -182,7 +181,6 @@ impl Parser {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -206,7 +204,7 @@ mod tests {
 
     #[test]
     fn test_parse_subtraction() {
-        let input = "(- 2 1)"; // 减法表达式
+        let input = "(- 2 1)";
         let result = Parser::read(input);
         assert!(result.is_ok());
         if let Ok(expr) = result {
@@ -220,7 +218,7 @@ mod tests {
 
     #[test]
     fn test_parse_invalid_number() {
-        let input = "42abc"; // 无效数字后跟随非法字符
+        let input = "42abc";
         let result = Parser::read(input);
         assert_eq!(result, Err(LispError::new("Invalid number")));
     }
@@ -229,14 +227,14 @@ mod tests {
     fn test_parse_number_with_inline_comment() {
         let input = "123;test";
         let result = Parser::read(input);
-        assert_eq!(result, Ok(Expr::Number(123))); // 解析成功，忽略注释部分
+        assert_eq!(result, Ok(Expr::Number(123)));
     }
 
     #[test]
     fn test_parse_number_with_space_and_comment() {
         let input = "123 ;test";
         let result = Parser::read(input);
-        assert_eq!(result, Ok(Expr::Number(123))); // 解析成功，忽略注释部分
+        assert_eq!(result, Ok(Expr::Number(123)));
     }
 
     #[test]
@@ -334,7 +332,7 @@ mod tests {
     fn test_parse_invalid_symbol() {
         let input = "@#$%";
         let result = Parser::read(input);
-        assert_eq!(result, Ok(Expr::Symbol("@#$%".to_string()))); // 符号解析无异常
+        assert_eq!(result, Ok(Expr::Symbol("@#$%".to_string())));
     }
 
     #[test]
@@ -386,6 +384,45 @@ mod tests {
                 Expr::Number(1), 
                 Expr::Number(2)
             ]));
+        }
+    }
+
+    #[test]
+    fn test_parse_multiline_expression() {
+        let input = "(defun fib (n)\n\
+                     (cond ((eq n 1) 1)\n\
+                           ((eq n 0) 0)\n\
+                           (t (+ (fib (- n 1)) (fib (- n 2))))))";
+        let result = Parser::read(input);
+        assert!(result.is_ok());
+        if let Ok(expr) = result {
+            assert_eq!(
+                expr,
+                Expr::List(vec![
+                    Expr::Symbol("defun".to_string()),
+                    Expr::Symbol("fib".to_string()),
+                    Expr::List(vec![Expr::Symbol("n".to_string())]),
+                    Expr::List(vec![
+                        Expr::Symbol("cond".to_string()),
+                        Expr::List(vec![
+                            Expr::List(vec![Expr::Symbol("eq".to_string()), Expr::Symbol("n".to_string()), Expr::Number(1)]),
+                            Expr::Number(1)
+                        ]),
+                        Expr::List(vec![
+                            Expr::List(vec![Expr::Symbol("eq".to_string()), Expr::Symbol("n".to_string()), Expr::Number(0)]),
+                            Expr::Number(0)
+                        ]),
+                        Expr::List(vec![
+                            Expr::Symbol("t".to_string()),
+                            Expr::List(vec![
+                                Expr::Symbol("+".to_string()),
+                                Expr::List(vec![Expr::Symbol("fib".to_string()), Expr::List(vec![Expr::Symbol("-".to_string()), Expr::Symbol("n".to_string()), Expr::Number(1)])]),
+                                Expr::List(vec![Expr::Symbol("fib".to_string()), Expr::List(vec![Expr::Symbol("-".to_string()), Expr::Symbol("n".to_string()), Expr::Number(2)])])
+                            ])
+                        ])
+                    ])
+                ])
+            );
         }
     }
 }

@@ -1,5 +1,3 @@
-// main.rs
-
 mod environment;
 mod parser;
 mod evaluator;
@@ -20,42 +18,71 @@ impl Lisp {
     }
 
     fn repl(env: &mut Environment) {
+        let mut input_accumulated = String::new();
+        let mut open_parens = 0;
+
         loop {
-            match Lisp::readline("lisp:> ") {
+            let prompt = if open_parens > 0 { "> " } else { "lisp:> " };
+            match Lisp::readline(prompt) {
                 Ok(input) => {
                     if input.trim() == "exit" {
                         break;
                     }
-                    match Parser::read(&input) {
-                        Ok(ast) => {
-                            let result = Evaluator::eval(&ast, env);
-                            match result {
-                                Ok(value) => Lisp::write(format!("{}\n", value)), // Now it will print correctly
-                                Err(err) => eprintln!("Error: {}", err),
+                    input_accumulated.push_str(&input);
+                    open_parens += input.chars().filter(|&ch| ch == '(').count();
+                    open_parens -= input.chars().filter(|&ch| ch == ')').count();
+
+                    if open_parens == 0 {
+                        match Parser::read(&input_accumulated) {
+                            Ok(ast) => {
+                                let result = Evaluator::eval(&ast, env);
+                                match result {
+                                    Ok(value) => Lisp::write(format!("{}\n", value)),
+                                    Err(err) => eprintln!("Error: {}", err),
+                                }
                             }
+                            Err(err) => eprintln!("Parse Error: {}", err),
                         }
-                        Err(err) => eprintln!("Parse Error: {}", err),
+                        input_accumulated.clear();
+                    } else if open_parens < 0 {
+                        eprintln!("Parse Error: Mismatched parentheses");
+                        input_accumulated.clear();
+                        open_parens = 0;
                     }
                 }
                 Err(err) => eprintln!("Readline Error: {}", err),
             }
         }
     }
-    
+
     #[allow(dead_code)]
     fn interpreter(file: &str, env: &mut Environment) {
         match std::fs::read_to_string(file) {
             Ok(contents) => {
+                let mut input_accumulated = String::new();
+                let mut open_parens = 0;
+
                 for line in contents.lines() {
-                    match Parser::read(line) {
-                        Ok(ast) => {
-                            let result = Evaluator::eval(&ast, env);
-                            match result {
-                                Ok(value) => Lisp::write(format!("{}\n", value)),
-                                Err(err) => eprintln!("Error: {}", err),
+                    input_accumulated.push_str(line);
+                    open_parens += line.chars().filter(|&ch| ch == '(').count();
+                    open_parens -= line.chars().filter(|&ch| ch == ')').count();
+
+                    if open_parens == 0 {
+                        match Parser::read(&input_accumulated) {
+                            Ok(ast) => {
+                                let result = Evaluator::eval(&ast, env);
+                                match result {
+                                    Ok(value) => Lisp::write(format!("{}\n", value)),
+                                    Err(err) => eprintln!("Error: {}", err),
+                                }
                             }
+                            Err(err) => eprintln!("Parse Error: {}", err),
                         }
-                        Err(err) => eprintln!("Parse Error: {}", err),
+                        input_accumulated.clear();
+                    } else if open_parens < 0 {
+                        eprintln!("Parse Error: Mismatched parentheses");
+                        input_accumulated.clear();
+                        open_parens = 0;
                     }
                 }
             }
@@ -68,7 +95,7 @@ impl Lisp {
         io::stdout().flush()?;
         let mut input = String::new();
         io::stdin().read_line(&mut input)?;
-        Ok(input.trim().to_string())
+        Ok(input)
     }
 
     fn write(output: String) {
@@ -77,8 +104,8 @@ impl Lisp {
 }
 
 fn main() {
-    let mut env = Lisp::initialize(); // 初始化全局环境
-    Lisp::repl(&mut env);  // 可以切换为 `Lisp::interpreter("file.Lisp", &mut env);` 进行文件解析
+    let mut env = Lisp::initialize();
+    Lisp::repl(&mut env);
 }
 
 #[cfg(test)]

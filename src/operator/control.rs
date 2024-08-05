@@ -231,4 +231,71 @@ mod tests {
         ], &mut env);
         assert_eq!(result, Ok(Expr::List(vec![])));
     }
+
+    #[test]
+    fn test_cond_single_clause() {
+        let mut env = setup_environment();
+    
+        // 测试：(cond (5)) 应返回 5
+        let expr = Expr::List(vec![
+            Expr::Symbol("cond".to_string()),
+            Expr::List(vec![Expr::Number(5)]),
+        ]);
+    
+        let result = Evaluator::eval(&expr, &mut env);
+        assert_eq!(result, Ok(Expr::Number(5)));
+    }
+
+    #[test]
+    fn test_cond_no_true_condition() {
+        let mut env = setup_environment();
+    
+        // 测试：(cond (nil 1) (nil 2)) 应返回错误
+        let expr = Expr::List(vec![
+            Expr::Symbol("cond".to_string()),
+            Expr::List(vec![
+                Expr::Symbol("nil".to_string()),
+                Expr::Number(1),
+            ]),
+            Expr::List(vec![
+                Expr::Symbol("nil".to_string()),
+                Expr::Number(2),
+            ]),
+        ]);
+    
+        let result = Evaluator::eval(&expr, &mut env);
+        assert_eq!(result, Err(LispError::new("No true condition in cond")));
+    }
+
+    #[test]
+    fn test_cond_clause_too_long() {
+        let mut env = setup_environment();
+    
+        // 测试：(cond (t 1 2)) 应抛出错误
+        let expr = Expr::List(vec![
+            Expr::Symbol("cond".to_string()),
+            Expr::List(vec![
+                Expr::Symbol("t".to_string()),
+                Expr::Number(1),
+                Expr::Number(2),
+            ]),
+        ]);
+    
+        let result = Evaluator::eval(&expr, &mut env);
+        assert_eq!(result, Err(LispError::new("Each cond clause must have exactly one or two elements")));
+    }
+
+    #[test]
+    fn test_cond_clause_not_a_list() {
+        let mut env = setup_environment();
+    
+        // 测试：(cond 1) 应抛出错误
+        let expr = Expr::List(vec![
+            Expr::Symbol("cond".to_string()),
+            Expr::Number(1),
+        ]);
+    
+        let result = Evaluator::eval(&expr, &mut env);
+        assert_eq!(result, Err(LispError::new("Cond clause must be a list")));
+    }    
 }

@@ -183,4 +183,128 @@ mod tests {
         let result = ListOps::eval_cdr(&[Expr::List(vec![])], &mut env);
         assert_eq!(result, Ok(Expr::List(vec![])));
     }
+
+    #[test]
+    fn test_eval_length_success() {
+        let mut env = setup_environment();
+    
+        // 使用 quote 确保 length 的参数是一个列表
+        let expr = Expr::List(vec![
+            Expr::Symbol("length".to_string()),
+            Expr::List(vec![
+                Expr::Symbol("quote".to_string()),
+                Expr::List(vec![Expr::Number(1), Expr::Number(2), Expr::Number(3)]),
+            ]),
+        ]);
+        let result = Evaluator::eval(&expr, &mut env);
+        assert_eq!(result, Ok(Expr::Number(3)));
+    }
+    
+    #[test]
+    fn test_eval_length_empty_list() {
+        let mut env = setup_environment();
+    
+        // 空列表
+        let expr = Expr::List(vec![
+            Expr::Symbol("length".to_string()),
+            Expr::List(vec![
+                Expr::Symbol("quote".to_string()),
+                Expr::List(vec![]),
+            ]),
+        ]);
+        let result = Evaluator::eval(&expr, &mut env);
+        assert_eq!(result, Ok(Expr::Number(0)));
+    }
+    
+    #[test]
+    fn test_eval_length_invalid_argument() {
+        let mut env = setup_environment();
+    
+        // 非列表参数
+        let expr = Expr::List(vec![
+            Expr::Symbol("length".to_string()),
+            Expr::Number(123),
+        ]);
+        let result = Evaluator::eval(&expr, &mut env);
+        assert!(result.is_err());
+        if let Err(err) = result {
+            assert_eq!(err.to_string(), "length: argument is not a list");
+        }
+    }
+
+    #[test]
+    fn test_eval_quote_success() {
+        let mut env = setup_environment();
+    
+        // 直接返回未评估的表达式
+        let expr = Expr::List(vec![
+            Expr::Symbol("quote".to_string()),
+            Expr::Number(123),
+        ]);
+        let result = Evaluator::eval(&expr, &mut env);
+        assert_eq!(result, Ok(Expr::Number(123)));
+    }
+    
+    #[test]
+    fn test_eval_quote_list() {
+        let mut env = setup_environment();
+    
+        // 列表的 quote 测试
+        let expr = Expr::List(vec![
+            Expr::Symbol("quote".to_string()),
+            Expr::List(vec![Expr::Number(1), Expr::Number(2), Expr::Number(3)]),
+        ]);
+        let result = Evaluator::eval(&expr, &mut env);
+        assert_eq!(result, Ok(Expr::List(vec![Expr::Number(1), Expr::Number(2), Expr::Number(3)])));
+    }
+    
+    #[test]
+    fn test_eval_cons_with_non_list_second_argument() {
+        let mut env = setup_environment();
+    
+        // 第二个参数为非列表
+        let expr = Expr::List(vec![
+            Expr::Symbol("cons".to_string()),
+            Expr::Number(1),
+            Expr::Number(2), // 非列表
+        ]);
+        let result = Evaluator::eval(&expr, &mut env);
+        assert!(result.is_err());
+        if let Err(err) = result {
+            assert_eq!(err.to_string(), "cons: second argument must be a list");
+        }
+    }
+    
+    #[test]
+    fn test_eval_car_with_non_list_argument() {
+        let mut env = setup_environment();
+    
+        // 参数为非列表
+        let expr = Expr::List(vec![
+            Expr::Symbol("car".to_string()),
+            Expr::Number(123), // 非列表
+        ]);
+        let result = Evaluator::eval(&expr, &mut env);
+        assert!(result.is_err());
+        if let Err(err) = result {
+            assert_eq!(err.to_string(), "car: argument must be a list");
+        }
+    }
+    
+    #[test]
+    fn test_eval_cdr_with_non_list_argument() {
+        let mut env = setup_environment();
+    
+        // 参数为非列表
+        let expr = Expr::List(vec![
+            Expr::Symbol("cdr".to_string()),
+            Expr::Number(123), // 非列表
+        ]);
+        let result = Evaluator::eval(&expr, &mut env);
+        assert!(result.is_err());
+        if let Err(err) = result {
+            assert_eq!(err.to_string(), "cdr: argument must be a list");
+        }
+    }
+    
 }

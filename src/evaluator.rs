@@ -30,11 +30,9 @@ impl Evaluator {
                         }
                     }
                     Expr::List(_) => {
-                        // Evaluate the first element which might be a lambda expression
                         let func = Evaluator::eval(&list[0], env)?;
                         if let Expr::List(func_list) = func {
                             if func_list.len() >= 3 && func_list[0] == Expr::Symbol("lambda".to_string()) {
-                                // Correctly call the lambda function
                                 Lambda::eval_lambda_call(&func_list[1..], &list[1..], env)
                             } else {
                                 Err(LispError::new("Invalid lambda"))

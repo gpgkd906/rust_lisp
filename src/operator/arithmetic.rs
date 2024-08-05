@@ -166,6 +166,26 @@ mod tests {
     }
 
     #[test]
+    fn test_eval_add_invild_number() {
+        let mut env = Environment::initialize();
+        let args = vec![Expr::Number(2), Expr::Str("a".to_string())];
+        let result = Arithmetic::eval_add(&args, &mut env);
+
+        assert!(result.is_err());
+        if let Err(err) = result {
+            assert_eq!(err.to_string(), "Invalid number");
+        }
+
+        let args = vec![Expr::Str("a".to_string()), Expr::Number(2)];
+        let result = Arithmetic::eval_add(&args, &mut env);
+
+        assert!(result.is_err());
+        if let Err(err) = result {
+            assert_eq!(err.to_string(), "Invalid number");
+        }
+    }
+
+    #[test]
     fn test_eval_add_single_argument() {
         let mut env = Environment::initialize();
         let args = vec![Expr::Number(42)];
@@ -216,6 +236,26 @@ mod tests {
         assert!(result.is_err());
         if let Err(err) = result {
             assert_eq!(err.to_string(), "Subtraction requires at least one argument");
+        }
+    }
+
+    #[test]
+    fn test_eval_sub_invlid_number() {
+        let mut env = Environment::initialize();
+        let args = vec![Expr::Number(2), Expr::Str("a".to_string())];
+        let result = Arithmetic::eval_subtract(&args, &mut env);
+
+        assert!(result.is_err());
+        if let Err(err) = result {
+            assert_eq!(err.to_string(), "Invalid number");
+        }
+
+        let args = vec![Expr::Str("a".to_string()), Expr::Number(2)];
+        let result = Arithmetic::eval_subtract(&args, &mut env);
+
+        assert!(result.is_err());
+        if let Err(err) = result {
+            assert_eq!(err.to_string(), "Invalid number");
         }
     }
 
@@ -279,6 +319,26 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), Expr::Number(1)); // Multiplying no arguments should return one
+    }
+
+    #[test]
+    fn test_eval_mul_invlid_number() {
+        let mut env = Environment::initialize();
+        let args = vec![Expr::Number(2), Expr::Str("a".to_string())];
+        let result = Arithmetic::eval_multiply(&args, &mut env);
+
+        assert!(result.is_err());
+        if let Err(err) = result {
+            assert_eq!(err.to_string(), "Invalid number");
+        }
+
+        let args = vec![Expr::Str("a".to_string()), Expr::Number(2)];
+        let result = Arithmetic::eval_multiply(&args, &mut env);
+
+        assert!(result.is_err());
+        if let Err(err) = result {
+            assert_eq!(err.to_string(), "Invalid number");
+        }
     }
 
     #[test]
@@ -367,6 +427,24 @@ mod tests {
         if let Err(err) = result {
             assert_eq!(err.to_string(), "Undefined symbol: a");
         }
+
+        // div with string
+        let args = vec![Expr::Number(10), Expr::Str("a".to_string())];
+        let result = Arithmetic::eval_divide(&args, &mut env);
+
+        assert!(result.is_err());
+        if let Err(err) = result {
+            assert_eq!(err.to_string(), "Invalid number");
+        }
+
+        // div from string
+        let args = vec![Expr::Str("a".to_string()), Expr::Number(10)];
+        let result = Arithmetic::eval_divide(&args, &mut env);
+
+        assert!(result.is_err());
+        if let Err(err) = result {
+            assert_eq!(err.to_string(), "Invalid number");
+        }
     }
 
     #[test]
@@ -436,4 +514,55 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), Expr::Number(3_000_000_000));
     }
+            
+    #[test]
+    fn test_eval_add_large_numbers() {
+        let mut env = Environment::initialize();
+        let args = vec![Expr::Number(1_000_000_000), Expr::Number(2_000_000_000)];
+        let result = Arithmetic::eval_add(&args, &mut env);
+    
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Expr::Number(3_000_000_000)); // 正确处理大数值
+    }
+
+    #[test]
+    fn test_eval_add_with_zero() {
+        let mut env = Environment::initialize();
+        let args = vec![Expr::Number(0), Expr::Number(10)];
+        let result = Arithmetic::eval_add(&args, &mut env);
+    
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Expr::Number(10)); // 确认加法中零的处理
+    }
+    
+    #[test]
+    fn test_eval_mul_with_zero() {
+        let mut env = Environment::initialize();
+        let args = vec![Expr::Number(0), Expr::Number(10)];
+        let result = Arithmetic::eval_multiply(&args, &mut env);
+    
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Expr::Number(0)); // 确认乘法中零的处理
+    }
+
+    #[test]
+    fn test_eval_sub_negative_numbers() {
+        let mut env = Environment::initialize();
+        let args = vec![Expr::Number(-10), Expr::Number(5)];
+        let result = Arithmetic::eval_subtract(&args, &mut env);
+    
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Expr::Number(-15)); // 确认负数运算
+    }
+    
+    #[test]
+    fn test_eval_mul_negative_numbers() {
+        let mut env = Environment::initialize();
+        let args = vec![Expr::Number(-2), Expr::Number(3)];
+        let result = Arithmetic::eval_multiply(&args, &mut env);
+    
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Expr::Number(-6)); // 确认负数乘法
+    }
+
 }

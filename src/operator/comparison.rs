@@ -209,8 +209,10 @@ impl Comparison {
                     Ok(Expr::List(vec![]))
                 }
             }
-            (Expr::Symbol(l), Expr::Symbol(r)) => {
-                if l == r {
+            (Expr::Symbol(_), Expr::Symbol(_)) => {
+                let left = Evaluator::eval(&left, env);
+                let right = Evaluator::eval(&right, env);
+                if left == right {
                     Ok(Expr::Symbol("t".to_string()))
                 } else {
                     Ok(Expr::List(vec![]))
@@ -265,8 +267,10 @@ impl Comparison {
                     Ok(Expr::List(vec![]))
                 }
             }
-            (Expr::Symbol(l), Expr::Symbol(r)) => {
-                if l != r {
+            (Expr::Symbol(_), Expr::Symbol(_)) => {
+                let left = Evaluator::eval(&left, env);
+                let right = Evaluator::eval(&right, env);
+                if left != right {
                     Ok(Expr::Symbol("t".to_string()))
                 } else {
                     Ok(Expr::List(vec![]))
@@ -545,7 +549,7 @@ mod tests {
     #[test]
     fn test_equal_operator() {
         let mut env = setup_environment();
-    
+
         // 列表不相等，引用不同
         let result = Comparison::eval_equal(&[
             Expr::List(vec![
@@ -626,6 +630,35 @@ mod tests {
         // 浮点数与整数
         let result = Comparison::eval_equal(&[Expr::Float(3.0), Expr::Number(3)], &mut env);
         assert_eq!(result, Ok(Expr::Symbol("t".to_string())));
+
+        // 浮点数与整数
+        let result = Comparison::eval_equal(&[Expr::Number(3), Expr::Float(3.00000001)], &mut env);
+        assert_eq!(result, Ok(Expr::List(vec![])));
+
+        // 整数与整数
+        let result = Comparison::eval_equal(&[Expr::Number(3), Expr::Number(3)], &mut env);
+        assert_eq!(result, Ok(Expr::Symbol("t".to_string())));
+
+        // 整数与整数
+        let result = Comparison::eval_equal(&[Expr::Number(3), Expr::Number(4)], &mut env);
+        assert_eq!(result, Ok(Expr::List(vec![])));
+    }
+
+    #[test]
+    fn test_equal_operator_with_symbols() {
+        let mut env = setup_environment();
+
+        // 符号相等
+        let result = Comparison::eval_equal(&[Expr::Symbol("a".to_string()), Expr::Symbol("a".to_string())], &mut env);
+        assert_eq!(result, Ok(Expr::Symbol("t".to_string())));
+
+        // 符号不相等
+        let result = Comparison::eval_equal(&[Expr::Symbol("a".to_string()), Expr::Symbol("b".to_string())], &mut env);
+        assert_eq!(result, Ok(Expr::List(vec![])));
+
+        // 符号与数字
+        let result = Comparison::eval_equal(&[Expr::Symbol("a".to_string()), Expr::Number(3)], &mut env);
+        assert_eq!(result, Ok(Expr::List(vec![])));
     }
 
     #[test]
@@ -643,5 +676,34 @@ mod tests {
         // 浮点数与整数
         let result = Comparison::eval_not_equal(&[Expr::Float(3.0), Expr::Number(3)], &mut env);
         assert_eq!(result, Ok(Expr::List(vec![])));
+
+        // 浮点数与整数
+        let result = Comparison::eval_not_equal(&[Expr::Number(3), Expr::Float(3.00000001)], &mut env);
+        assert_eq!(result, Ok(Expr::Symbol("t".to_string())));
+
+        // 整数与整数
+        let result = Comparison::eval_not_equal(&[Expr::Number(3), Expr::Number(3)], &mut env);
+        assert_eq!(result, Ok(Expr::List(vec![])));
+
+        // 整数与整数
+        let result = Comparison::eval_not_equal(&[Expr::Number(3), Expr::Number(4)], &mut env);
+        assert_eq!(result, Ok(Expr::Symbol("t".to_string())));
+    }
+
+    #[test]
+    fn test_not_equal_operator_with_symbols() {
+        let mut env = setup_environment();
+
+        // 符号相等
+        let result = Comparison::eval_not_equal(&[Expr::Symbol("a".to_string()), Expr::Symbol("a".to_string())], &mut env);
+        assert_eq!(result, Ok(Expr::List(vec![])));
+
+        // 符号不相等
+        let result = Comparison::eval_not_equal(&[Expr::Symbol("a".to_string()), Expr::Symbol("b".to_string())], &mut env);
+        assert_eq!(result, Ok(Expr::Symbol("t".to_string())));
+
+        // 符号与数字
+        let result = Comparison::eval_not_equal(&[Expr::Symbol("a".to_string()), Expr::Number(3)], &mut env);
+        assert_eq!(result, Ok(Expr::Symbol("t".to_string())));
     }
 }

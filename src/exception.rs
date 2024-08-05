@@ -1,4 +1,6 @@
-#[derive(Debug)]
+// exception.rs
+
+#[derive(Debug, PartialEq)]
 pub struct LispError {
     message: String,
 }

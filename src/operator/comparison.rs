@@ -7,6 +7,27 @@ use crate::evaluator::Evaluator;
 
 pub struct Comparison;
 
+macro_rules! match_comparison {
+    ($left:expr, $right:expr, {
+        $(
+            ($lpat:pat, $rpat:pat) => $cond:expr,
+        )*
+    }, $default:expr) => {
+        match ($left, $right) {
+            $(
+                ($lpat, $rpat) => {
+                    if $cond {
+                        Ok(Expr::Symbol("t".to_string()))
+                    } else {
+                        Ok(Expr::List(vec![]))
+                    }
+                },
+            )*
+            _ => $default,
+        }
+    };
+}
+
 impl Comparison {
     pub fn eval_greater(args: &[Expr], env: &mut Environment) -> Result<Expr, LispError> {
         if args.len() != 2 {
@@ -16,37 +37,12 @@ impl Comparison {
         let left = Evaluator::eval(&args[0], env)?;
         let right = Evaluator::eval(&args[1], env)?;
 
-        match (left, right) {
-            (Expr::Number(l), Expr::Number(r)) => {
-                if l > r {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            (Expr::Float(l), Expr::Float(r)) => {
-                if l > r {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            (Expr::Number(l), Expr::Float(r)) => {
-                if (l as f64) > r {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            (Expr::Float(l), Expr::Number(r)) => {
-                if l > (r as f64) {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            _ => Err(LispError::new("`>` arguments must be numbers")),
-        }
+        match_comparison!(left, right, {
+            (Expr::Number(l), Expr::Number(r)) => l > r,
+            (Expr::Float(l), Expr::Float(r)) => l > r,
+            (Expr::Number(l), Expr::Float(r)) => (l as f64) > r,
+            (Expr::Float(l), Expr::Number(r)) => l > (r as f64),
+        }, Err(LispError::new("`>` arguments must be numbers")))
     }
 
     pub fn eval_greater_equal(args: &[Expr], env: &mut Environment) -> Result<Expr, LispError> {
@@ -57,37 +53,12 @@ impl Comparison {
         let left = Evaluator::eval(&args[0], env)?;
         let right = Evaluator::eval(&args[1], env)?;
 
-        match (left, right) {
-            (Expr::Number(l), Expr::Number(r)) => {
-                if l >= r {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            (Expr::Float(l), Expr::Float(r)) => {
-                if l >= r {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            (Expr::Number(l), Expr::Float(r)) => {
-                if (l as f64) >= r {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            (Expr::Float(l), Expr::Number(r)) => {
-                if l >= (r as f64) {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            _ => Err(LispError::new("`>=` arguments must be numbers")),
-        }
+        match_comparison!(left, right, {
+            (Expr::Number(l), Expr::Number(r)) => l >= r,
+            (Expr::Float(l), Expr::Float(r)) => l >= r,
+            (Expr::Number(l), Expr::Float(r)) => (l as f64) >= r,
+            (Expr::Float(l), Expr::Number(r)) => l >= (r as f64),
+        }, Err(LispError::new("`>=` arguments must be numbers")))
     }
 
     pub fn eval_less(args: &[Expr], env: &mut Environment) -> Result<Expr, LispError> {
@@ -98,37 +69,12 @@ impl Comparison {
         let left = Evaluator::eval(&args[0], env)?;
         let right = Evaluator::eval(&args[1], env)?;
 
-        match (left, right) {
-            (Expr::Number(l), Expr::Number(r)) => {
-                if l < r {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            (Expr::Float(l), Expr::Float(r)) => {
-                if l < r {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            (Expr::Number(l), Expr::Float(r)) => {
-                if (l as f64) < r {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            (Expr::Float(l), Expr::Number(r)) => {
-                if l < (r as f64) {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            _ => Err(LispError::new("`<` arguments must be numbers")),
-        }
+        match_comparison!(left, right, {
+            (Expr::Number(l), Expr::Number(r)) => l < r,
+            (Expr::Float(l), Expr::Float(r)) => l < r,
+            (Expr::Number(l), Expr::Float(r)) => (l as f64) < r,
+            (Expr::Float(l), Expr::Number(r)) => l < (r as f64),
+        }, Err(LispError::new("`<` arguments must be numbers")))
     }
 
     pub fn eval_less_equal(args: &[Expr], env: &mut Environment) -> Result<Expr, LispError> {
@@ -139,37 +85,12 @@ impl Comparison {
         let left = Evaluator::eval(&args[0], env)?;
         let right = Evaluator::eval(&args[1], env)?;
 
-        match (left, right) {
-            (Expr::Number(l), Expr::Number(r)) => {
-                if l <= r {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            (Expr::Float(l), Expr::Float(r)) => {
-                if l <= r {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            (Expr::Number(l), Expr::Float(r)) => {
-                if (l as f64) <= r {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            (Expr::Float(l), Expr::Number(r)) => {
-                if l <= (r as f64) {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            _ => Err(LispError::new("`<=` arguments must be numbers")),
-        }
+        match_comparison!(left, right, {
+            (Expr::Number(l), Expr::Number(r)) => l <= r,
+            (Expr::Float(l), Expr::Float(r)) => l <= r,
+            (Expr::Number(l), Expr::Float(r)) => (l as f64) <= r,
+            (Expr::Float(l), Expr::Number(r)) => l <= (r as f64),
+        }, Err(LispError::new("`<=` arguments must be numbers")))
     }
 
     pub fn eval_equal(args: &[Expr], env: &mut Environment) -> Result<Expr, LispError> {
@@ -180,54 +101,18 @@ impl Comparison {
         let left = Evaluator::eval(&args[0], env)?;
         let right = Evaluator::eval(&args[1], env)?;
     
-        match (&left, &right) {
-            (Expr::Number(l), Expr::Number(r)) => {
-                if l == r {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            (Expr::Float(l), Expr::Float(r)) => {
-                if (l - r).abs() < f64::EPSILON {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            (Expr::Number(l), Expr::Float(r)) => {
-                if ((*l as f64) - r).abs() < f64::EPSILON {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            (Expr::Float(l), Expr::Number(r)) => {
-                if (l - (*r as f64)).abs() < f64::EPSILON {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
+        match_comparison!(&left, &right, {
+            (Expr::Number(l), Expr::Number(r)) => l == r,
+            (Expr::Float(l), Expr::Float(r)) => (l - r).abs() < f64::EPSILON,
+            (Expr::Number(l), Expr::Float(r)) => ((*l as f64) - r).abs() < f64::EPSILON,
+            (Expr::Float(l), Expr::Number(r)) => (l - (*r as f64)).abs() < f64::EPSILON,
             (Expr::Symbol(_), Expr::Symbol(_)) => {
                 let left = Evaluator::eval(&left, env);
                 let right = Evaluator::eval(&right, env);
-                if left == right {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            (Expr::List(l), Expr::List(r)) => {
-                // Check if the lists are the same reference
-                if std::ptr::eq(l, r) {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            _ => Ok(Expr::List(vec![])),
-        }
+                left == right
+            },
+            (Expr::List(l), Expr::List(r)) => std::ptr::eq(l, r),
+        }, Ok(Expr::List(vec![])))
     }
     
     pub fn eval_not_equal(args: &[Expr], env: &mut Environment) -> Result<Expr, LispError> {
@@ -238,54 +123,18 @@ impl Comparison {
         let left = Evaluator::eval(&args[0], env)?;
         let right = Evaluator::eval(&args[1], env)?;
     
-        match (&left, &right) {
-            (Expr::Number(l), Expr::Number(r)) => {
-                if l != r {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            (Expr::Float(l), Expr::Float(r)) => {
-                if (l - r).abs() >= f64::EPSILON {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            (Expr::Number(l), Expr::Float(r)) => {
-                if ((*l as f64) - r).abs() >= f64::EPSILON {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            (Expr::Float(l), Expr::Number(r)) => {
-                if (l - (*r as f64)).abs() >= f64::EPSILON {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
+        match_comparison!(&left, &right, {
+            (Expr::Number(l), Expr::Number(r)) => l != r,
+            (Expr::Float(l), Expr::Float(r)) => (l - r).abs() >= f64::EPSILON,
+            (Expr::Number(l), Expr::Float(r)) => ((*l as f64) - r).abs() >= f64::EPSILON,
+            (Expr::Float(l), Expr::Number(r)) => (l - (*r as f64)).abs() >= f64::EPSILON,
             (Expr::Symbol(_), Expr::Symbol(_)) => {
                 let left = Evaluator::eval(&left, env);
                 let right = Evaluator::eval(&right, env);
-                if left != right {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            (Expr::List(l), Expr::List(r)) => {
-                // Check if the lists are not the same reference
-                if !std::ptr::eq(l, r) {
-                    Ok(Expr::Symbol("t".to_string()))
-                } else {
-                    Ok(Expr::List(vec![]))
-                }
-            }
-            _ => Ok(Expr::Symbol("t".to_string())),
-        }
+                left != right
+            },
+            (Expr::List(l), Expr::List(r)) => !std::ptr::eq(l, r),
+        }, Ok(Expr::Symbol("t".to_string())))
     }
                     
 }
@@ -580,6 +429,10 @@ mod tests {
         // 符号不相等
         let result = Comparison::eval_equal(&[Expr::Symbol("a".to_string()), Expr::Symbol("b".to_string())], &mut env);
         assert_eq!(result, Ok(Expr::List(vec![])));
+
+        // 参数不足
+        let result = Comparison::eval_equal(&[Expr::Number(5)], &mut env);
+        assert_eq!(result, Err(LispError::new("`eq` expects exactly two arguments")));
     }
     
     #[test]
@@ -613,6 +466,10 @@ mod tests {
         // 符号相等
         let result = Comparison::eval_not_equal(&[Expr::Symbol("a".to_string()), Expr::Symbol("a".to_string())], &mut env);
         assert_eq!(result, Ok(Expr::Symbol("t".to_string())));
+
+        // 参数不足
+        let result = Comparison::eval_not_equal(&[Expr::Number(5)], &mut env);
+        assert_eq!(result, Err(LispError::new("`ne` expects exactly two arguments")));
     }    
 
     #[test]

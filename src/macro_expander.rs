@@ -156,7 +156,6 @@ mod tests {
     use super::*;
     use crate::environment::Environment;
     use crate::expression::Expr;
-    use crate::exception::LispError;
 
     #[test]
     fn test_expand_macro_simple() {

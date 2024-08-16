@@ -71,7 +71,7 @@ impl Control {
     }
 
     pub fn eval_gensym(_: &[Expr], _: &mut Environment) -> Result<Expr, LispError> {
-        let mut counter = GENSYM_COUNTER.lock().unwrap();
+        let counter = GENSYM_COUNTER.lock().unwrap();
         let gensym_id = counter.fetch_add(1, Ordering::SeqCst);
         Ok(Expr::Symbol(format!("#:G{}", gensym_id)))
     }
